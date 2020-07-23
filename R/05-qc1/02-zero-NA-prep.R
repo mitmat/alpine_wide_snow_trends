@@ -197,6 +197,7 @@ dat_plot %>%
 
 # one bound --------------------------------------------------------
 
+dat_plot <- merge(dat_values, dat_loop_out, by = c("Name"))
 dat_plot[, in_zero_qr := frac_zero %between% list(-Inf, frac_zero_q95)]
 dat_plot[, in_hs_qr := mean_hs %between% list(mean_hs_q05, Inf)]
 dat_plot[, in_zero_sd := (frac_zero - frac_zero_mean) %between% 
@@ -230,8 +231,15 @@ dat_plot %>%
   facet_grid(in_hs_qr ~ in_zero_qr, labeller = label_both)
 
 
-
-
+# plot for presentation
+dat_plot %>% 
+  ggplot(aes(Elevation, mean_hs, colour = frac_zero))+
+  geom_point()+
+  scale_color_binned(type = "viridis", n.breaks = 10)+
+  theme_bw()+
+  ylab("Mean DJF HS [cm]")+xlab("Elevation [m]")
+ggsave(width = 8, height = 4,
+       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/OVERVIEW/03_july_meeting/fig/zeroNA-hs by elev.png")
 
 
 # -> most sense:

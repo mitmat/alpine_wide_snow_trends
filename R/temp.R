@@ -274,6 +274,114 @@ vec_dates[i_row_sample[1] - 4:0]
 
 mat_1[i_row_sample[1] - 4:0, i_stn]
 
+
+
+# check save refg gapfill -------------------------------------------------
+
+library(fs)
+dir_ls("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/04_GAPFILL/aux-ref-parameter/cv-1day/",
+       recurse = T,
+       regexp = "csv")
+
+
+# try reading in grib -----------------------------------------------------
+
+library(raster)
+library(rgdal)
+gdalDrivers()
+
+rgd <- readGDAL("~/projects-jupyter/cdsapi/era5-test-cdo.grib")
+rgd
+plot(rgd)
+# works
+
+# sf1 <- sf::read_sf("~/projects-jupyter/cdsapi/era5-test-cdo.grib")
+# no
+
+library(stars)
+st1 <- read_stars("~/projects-jupyter/cdsapi/era5-test-cdo.grib")
+st1
+plot(st1)
+st_crs(st1)
+# works
+
+rr <- raster("~/PycharmProjects/cds/download/era5-test.grib")
+rr <- raster("~/projects-jupyter/cdsapi/era5-test-cdo.grib")
+# no
+
+
+# convert grib to netcdf first using cdo
+# 'cdo -f nc copy <in> >out>
+rr <- raster("~/projects-jupyter/cdsapi/era5-test-grib2nc.nc")
+plot(rr)
+
+st2 <- read_stars("~/projects-jupyter/cdsapi/era5-test-grib2nc.nc")
+st2
+plot(st2)
+
+# try extract points
+dat_meta <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/03_QC1/rds/1961-2020/meta_wide_HS.rds")
+dat_meta_sub <- dat_meta[sample.int(.N, 20)]
+sf_meta_sub <- st_as_sf(dat_meta_sub,
+                        coords = c("Longitude", "Latitude"),
+                        crs = st_crs("+proj=longlat +datum=WGS84"))
+mapview::mapview(sf_meta_sub)
+
+st_crs(st2)
+st2[sf_meta_sub]
+
+
+library(eurocordexr)
+dt_nc <- nc_grid_to_dt("~/projects-jupyter/cdsapi/era5-test-grib2nc.nc", 
+                                    "var130",
+                                    add_xy = T)
+dt_nc %>% str
+library(ggplot2)
+ggplot(dt_nc, aes(lon, lat, fill = var130))+geom_raster()
+
+# dt_point <- rotpole_nc_point_to_dt("~/projects-jupyter/cdsapi/era5-test-grib2nc.nc",
+#                                    variable = "var130",
+#                                    point_lat = 46.96,
+#                                    point_lon = 11.34)
+# nc_open("~/projects-jupyter/cdsapi/era5-test-grib2nc.nc")
+# -> does not work, just use the dt and manual dist lon lat
+
+# chelsa wworks!
+rr <- raster("/mnt/CEPH_PROJECTS/CLIRSNOW/chelsa/prec/CHELSA_prec_1979_01_V1.2.1.tif")
+rr
+rr[rr > 60000] <- NA
+plot(rr)
+
+rr2 <- crop(rr, extent(0, 20, 40, 50))
+rr2
+plot(rr2)
+
+# st_chel <- read_stars("/mnt/CEPH_PROJECTS/CLIRSNOW/chelsa/prec/CHELSA_prec_1979_01_V1.2.1.tif")
+# st_chel
+# 
+# sub_with_st <- st_chel[sf_meta_sub]
+# plot(sub_with_st)
+# sub_with_st %>% str
+
+
+
+nc_open("/mnt/CEPH_PROJECTS/CLIRSNOW/laprec/LAPrec1901.v1.0.nc")
+rr <- raster("/mnt/CEPH_PROJECTS/CLIRSNOW/laprec/LAPrec1901.v1.0.nc")
+rr
+plot(rr)
+
+
+nc_open("/mnt/CEPH_PROJECTS/CLIRSNOW/zz_eobs/v20.0e/rr_ens_mean_0.1deg_reg_v20.0e.nc")
+
+# summary
+# chelsa: raster
+# grib: cdo (to nc + monmean/sum + sellatlon) : eurocordexr
+# laprec: raster (since laea)
+# eobs: cdo monmean + sellatlon : eurocordexr
+# uerra/mescan: ??
+
+
+
 # EOF ---------------------------------------------------------------------
 
 
