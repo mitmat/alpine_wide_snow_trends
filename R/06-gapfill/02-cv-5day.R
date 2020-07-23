@@ -5,8 +5,9 @@ library(magrittr)
 library(lubridate)
 library(ggplot2)
 library(forcats)
-library(fs)
 library(foreach)
+library(fs)
+library(runner)
 
 source("R/06-gapfill/fdmg_v08.R")
 
@@ -38,7 +39,7 @@ vec_dates <- dat_1_w$Date
 
 set.seed(1234)
 
-mitmatmisc::init_parallel_ubuntu()
+mitmatmisc::init_parallel_ubuntu(6)
 
 # test sub
 # test_sub_stn <- sample(1:nrow(dat_meta_1), 28)
@@ -71,20 +72,24 @@ dat_out <- foreach(
   mat_i <- mat_1[, stn_sub]
   meta_i <- dat_meta_1[stn_sub]
   
+  # get possible 5 day windows
+  run_na <- sum_run(!is.na(mat_1[, i_stn]), k = 5, na_pad = T)
+  
   dat_out_stn <- foreach(
     i_month = c(11, 12, 1:5),
     .final = function(x) rbindlist(x, use.names = T, fill = T)
   ) %do% {
     
-    i_row_possible <- which(!is.na(mat_1[, i_stn]) & month(vec_dates) == i_month)
+    i_row_possible <- which(run_na == 5 & month(vec_dates) == i_month)
     
     if(length(i_row_possible) == 0) return(NULL)
     
-    if(length(i_row_possible) < 100){
+    if(length(i_row_possible) < 20){
       i_row_sample <- i_row_possible
     } else {
-      i_row_sample <- sample(i_row_possible, 100)
+      i_row_sample <- sample(i_row_possible, 20)
     }
+    
     
     
     dat_out_month <- foreach(
@@ -92,13 +97,14 @@ dat_out <- foreach(
       .final = function(x) rbindlist(x, use.names = T, fill = T)
     ) %do% {
       
-      outpath_ref_parameter <- path(
-        "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/04_GAPFILL/aux-ref-parameter/cv-1day/",
-        i_stn_name, i_month, i_rep 
-      )
-      dir_create(outpath_ref_parameter)
+      # outpath_ref_parameter <- path(
+      #   "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/04_GAPFILL/aux-ref-parameter/cv-5day/",
+      #   i_stn_name, i_month, i_rep 
+      # )
+      # dir_create(outpath_ref_parameter)
       
-      i_gap <- i_row_sample[i_rep]
+      # i_gap <- i_row_sample[i_rep]
+      i_gap <- i_row_sample[i_rep] - 4:0
       mat_ii <- mat_i
       mat_ii[i_gap, i_stn_name] <- NA
       
@@ -119,7 +125,7 @@ dat_out <- foreach(
                                       weight_by = "dist_v",
                                       n_ref_max = 5,
                                       verbose = 0,
-                                      save_ref_parameter = outpath_ref_parameter)
+                                      save_ref_parameter = NULL)
       
       
       
@@ -142,7 +148,7 @@ dat_out <- foreach(
 
 
 saveRDS(dat_out, 
-        file = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/04_GAPFILL/rds/cv-01-1day.rds")
+        file = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/04_GAPFILL/rds/cv-02-5day.rds")
 
 # EOF ---------------------------------------------------------------------
 

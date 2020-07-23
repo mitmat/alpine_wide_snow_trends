@@ -33,7 +33,6 @@
 # - added roxygen documentation
 # ------- v08 --------------- #  
 # - added rows_to_fill parameter
-# - minor changes?
 
 
 # requirements
@@ -273,7 +272,7 @@ fill_daily_meteo_gaps <- function(df_meta,
       
       
       # get parameters of possible series
-      mat_fill_param <- matrix(nrow = length(ref_stns_possible), ncol = 13)
+      mat_fill_param <- matrix(nrow = length(ref_stns_possible), ncol = 11)
       
       for(i_fill in seq_along(ref_stns_possible)){
         
@@ -323,7 +322,7 @@ fill_daily_meteo_gaps <- function(df_meta,
           conv_fact <- mean_gap - mean_ref
         }
         
-        browser()
+        
         mat_fill_param[i_fill, ] <- c(i_stn,
                                       df_meta$elev[i_stn],
                                       i_ref,
@@ -338,12 +337,11 @@ fill_daily_meteo_gaps <- function(df_meta,
         
       }
       
-      colnames(mat_fill_param) <- c("ind_gap", "elev_gap",
-                                    "ind_ref", "elev_ref", 
+      colnames(mat_fill_param) <- c("ind_gap", "elev_gap", "ind_ref", "elev_ref",
                                     "dist_h_km", "dist_h_weight", "dist_v_m", "corr", 
                                     "n_common", "conv_fact", "n_wetdays")
       
-      # rownames(mat_fill_param) <- df_meta$name[ref_stns_possible]
+      rownames(mat_fill_param) <- df_meta$name[ref_stns_possible]
 
 
 # select the final reference series ---------------------------------------
@@ -378,7 +376,6 @@ fill_daily_meteo_gaps <- function(df_meta,
       
       # save ref parameters
       if(!is.null(save_ref_parameter)){
-        browser()
         l_out_save[[as.character(i_date)]] <- data.table::as.data.table(mat_selected_ref_ordered,
                                                                         keep.rownames = "name_ref")
       }
@@ -391,12 +388,12 @@ fill_daily_meteo_gaps <- function(df_meta,
       if(weight_by == "corr"){
         xx <- mat_selected_ref_ordered[1:n_ref_actual, "corr"]
         wm_weights <- exp( -(1 - xx^2) / (weight_by_extra$tau_corr^2/log(2)) ) 
-      } else if(sort_by == "dist_h"){
+      } else if(weight_by == "dist_h"){
         wm_weights <- mat_selected_ref_ordered[1:n_ref_actual, "dist_h_weight"]
-      } else if(sort_by == "dist_v") {
+      } else if(weight_by == "dist_v") {
         xx <- mat_selected_ref_ordered[1:n_ref_actual, "dist_v_m"]
         wm_weights <- exp( -(xx^2) / (weight_by_extra$tau_v^2/log(2)) ) 
-      } else stop('sort_by must be in c("corr", "dist_h", "dist_v")')
+      } else stop('weight_by must be in c("corr", "dist_h", "dist_v")')
       
 
       

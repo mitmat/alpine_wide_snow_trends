@@ -23,7 +23,7 @@ dat_1[month <= 8, season_year := season_year - 1L]
 
 dat_1 <- dat_1[season_year >= 1981 & season_year <= 2010]
 
-dat_1_w <- dcast(dat_1, Date ~ Name, value.var = "HS")
+dat_1_w <- dcast(dat_1, Date ~ Name, value.var = "HN")
 
 mat_1 <- as.matrix(dat_1_w[, -c("Date"), with  = F])
 
@@ -38,24 +38,24 @@ vec_dates <- dat_1_w$Date
 
 set.seed(1234)
 
-mitmatmisc::init_parallel_ubuntu()
+mitmatmisc::init_parallel_ubuntu(6)
 
 # test sub
 # test_sub_stn <- sample(1:nrow(dat_meta_1), 28)
 
 # reduce sample for DE, CH_MSWISS, and AT
-# sample_stn_name <- c(
-#   dat_meta_1[provider == "DE_DWD", name[sample.int(.N, 300)]],
-#   dat_meta_1[provider == "CH_METEOSWISS", name[sample.int(.N, 200)]],
-#   dat_meta_1[provider == "AT_HZB", name[sample.int(.N, 300)]],
-#   dat_meta_1[!provider %in% c("DE_DWD", "CH_METEOSWISS", "AT_HZB"), name]
-# )
-# sample_stn_id <- which(dat_meta_1$name %in% sample_stn_name)
+sample_stn_name <- c(
+  dat_meta_1[provider == "DE_DWD", name[sample.int(.N, 300)]],
+  dat_meta_1[provider == "CH_METEOSWISS", name[sample.int(.N, 200)]],
+  dat_meta_1[provider == "AT_HZB", name[sample.int(.N, 300)]],
+  dat_meta_1[!provider %in% c("DE_DWD", "CH_METEOSWISS", "AT_HZB"), name]
+)
+sample_stn_id <- which(dat_meta_1$name %in% sample_stn_name)
 
 dat_out <- foreach(
-  i_stn = 1:nrow(dat_meta_1),
+  # i_stn = 1:nrow(dat_meta_1),
   # i_stn = test_sub_stn,
-  # i_stn = sample_stn_id,
+  i_stn = sample_stn_id,
   .final = function(x) rbindlist(x, use.names = T, fill = T)
 ) %dopar% {
   
@@ -93,7 +93,7 @@ dat_out <- foreach(
     ) %do% {
       
       outpath_ref_parameter <- path(
-        "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/04_GAPFILL/aux-ref-parameter/cv-1day/",
+        "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/04_GAPFILL/aux-ref-parameter/cv-1day-HN/",
         i_stn_name, i_month, i_rep 
       )
       dir_create(outpath_ref_parameter)
@@ -142,7 +142,7 @@ dat_out <- foreach(
 
 
 saveRDS(dat_out, 
-        file = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/04_GAPFILL/rds/cv-01-1day.rds")
+        file = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/04_GAPFILL/rds/cv-04-1day-HN.rds")
 
 # EOF ---------------------------------------------------------------------
 
