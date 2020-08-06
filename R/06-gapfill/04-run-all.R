@@ -31,6 +31,8 @@ setnames(dat_meta_1, c("provider", "name", "long", "lat", "elev"))
 
 vec_dates <- dat_1_w$Date
 
+out_ref_parameter <- "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/04_GAPFILL/aux-ref-parameter/final-HS/"
+
 # loop --------------------------------------------------------------------
 
 
@@ -56,7 +58,7 @@ dat_out <- foreach(
                                   weight_by = "dist_v",
                                   n_ref_max = 5,
                                   verbose = 0,
-                                  save_ref_parameter = NULL)
+                                  save_ref_parameter = out_ref_parameter)
   
   
   
