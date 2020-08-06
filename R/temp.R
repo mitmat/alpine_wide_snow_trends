@@ -382,6 +382,26 @@ nc_open("/mnt/CEPH_PROJECTS/CLIRSNOW/zz_eobs/v20.0e/rr_ens_mean_0.1deg_reg_v20.0
 
 
 
+
+# overview seasonal -------------------------------------------------------
+
+rbind(
+  dat_all_OctSep[, 
+                 .(hs = sum(!is.na(HS)),
+                   hn = sum(!is.na(HN)),
+                   seas = "oct-sep"), 
+                 hydro_year],
+  dat_all_NovMay[, 
+                 .(hs = sum(!is.na(HS)),
+                   hn = sum(!is.na(HN)),
+                   seas = "nov-may"), 
+                 hydro_year]
+) %>% 
+  ggplot(aes(hydro_year, hn, colour = seas))+
+  geom_point()+
+  geom_line()
+
+
 # EOF ---------------------------------------------------------------------
 
 
