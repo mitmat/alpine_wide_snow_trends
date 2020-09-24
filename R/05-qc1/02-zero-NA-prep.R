@@ -46,8 +46,7 @@ dat_all[, HS := as.integer(round(HS))]
 
 # zero NA -------------------------------------------------
 
-dat_summ <- dat_all[!is.na(HS) & month %in% c(12, 1:2) &
-                      Name != "La_Thuile_Ospizio_Piccolo_San_Bernardo",
+dat_summ <- dat_all[!is.na(HS) & month %in% c(12, 1:2),
                     .(n_avail = .N,
                       mean = mean(HS),
                       n_zero = sum(HS == 0),
@@ -116,8 +115,7 @@ dat_summ_month2 %>%
 # try a moving window detection -------------------------------------------
 
 
-dat_values <- dat_all[!is.na(HS) & month %in% c(12, 1:2) &
-                      Name != "La_Thuile_Ospizio_Piccolo_San_Bernardo",
+dat_values <- dat_all[!is.na(HS) & month %in% c(12, 1:2),
                     .(n_avail = .N,
                       mean_hs = mean(HS),
                       n_zero = sum(HS == 0),
@@ -169,6 +167,7 @@ dat_loop_out <- foreach(
 
 
 
+
 dat_plot <- merge(dat_values, dat_loop_out, by = c("Name"))
 dat_plot[, in_zero_qr := frac_zero %between% list(frac_zero_q05, frac_zero_q95)]
 dat_plot[, in_hs_qr := mean_hs %between% list(mean_hs_q05, mean_hs_q95)]
@@ -179,6 +178,7 @@ dat_plot[, in_hs_sd := (mean_hs - mean_hs_mean) %between%
 
 dat_plot %>% with(table(in_zero_qr, in_zero_sd))
 dat_plot %>% with(table(in_hs_qr, in_hs_sd))
+
 
 
 dat_plot %>% 
@@ -193,7 +193,13 @@ dat_plot %>%
   scale_color_binned(type = "viridis", n.breaks = 10)+
   facet_grid(in_hs_qr ~ in_hs_sd, labeller = label_both)
 
+dat_plot %>% with(table(in_hs_qr, in_zero_qr))
 
+dat_plot %>% 
+  ggplot(aes(Elevation, mean_hs, colour = frac_zero))+
+  geom_point()+
+  scale_color_binned(type = "viridis", n.breaks = 10)+
+  facet_grid(in_hs_qr ~ in_zero_qr, labeller = label_both)
 
 # one bound --------------------------------------------------------
 
@@ -239,7 +245,7 @@ dat_plot %>%
   theme_bw()+
   ylab("Mean DJF HS [cm]")+xlab("Elevation [m]")
 ggsave(width = 8, height = 4,
-       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/OVERVIEW/03_july_meeting/fig/zeroNA-hs by elev.png")
+       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/OVERVIEW/03_july_meeting/fig/zeroNA-hs by elev_v02.png")
 
 
 # -> most sense:
@@ -250,8 +256,23 @@ ggsave(width = 8, height = 4,
 
 stns_to_check <- dat_plot[in_zero_qr == FALSE | in_hs_qr == FALSE, Name]
 
+# suspicious
+dat_plot[Elevation < 1000 & mean_hs > 70]
+dat_plot[Elevation > 1000 & Elevation < 1300 & mean_hs > 80]
+dat_plot[Elevation > 1000 & Elevation < 1600 & mean_hs > 95]
+dat_plot[Elevation > 1500 & Elevation < 2000 & mean_hs > 150]
+dat_plot[Elevation > 2000 & mean_hs > 200]
+dat_plot[Elevation > 3000 & mean_hs < 100]
 
-
+rbindlist(list(
+  dat_plot[Elevation < 1000 & mean_hs > 70],
+  dat_plot[Elevation > 1000 & Elevation < 1300 & mean_hs > 80],
+  dat_plot[Elevation > 1000 & Elevation < 1600 & mean_hs > 95],
+  dat_plot[Elevation > 1500 & Elevation < 2000 & mean_hs > 150],
+  dat_plot[Elevation > 2000 & mean_hs > 200],
+  dat_plot[Elevation > 3000 & mean_hs < 100]
+)) %>% .[, .(Name = sort(unique(Name)), reason = "high HS relative to alt")] %>% 
+  fwrite("manual-qc/v02/series-to-check_from-zeroNA.txt")
 
 # for manual check: plots and tables ----------------------------------------------------
 
@@ -264,7 +285,7 @@ for(i_stn in stns_to_check){
   dat_i_stn[, idn_grp := floor(idn / 2)]
   
   
-  pdf(paste0("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/03_QC1/fig/zero-NA/", i_stn, ".pdf"),
+  pdf(paste0("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/03_QC1/v02/fig/zero-NA/", i_stn, ".pdf"),
       width = 14, height = 7)
   
   for(i_idn_grp in sort(unique(dat_i_stn$idn_grp))){
@@ -295,17 +316,57 @@ for(i_stn in stns_to_check){
   
   write_xlsx(
     dat_table,
-    paste0("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/03_QC1/table/zero-NA/", i_stn, ".xlsx")
+    paste0("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/03_QC1/v02/table/zero-NA/", i_stn, ".xlsx")
   )
   
 }
 
 # overview table
 
-data.table(Name = stns_to_check,
-           OK = NA,
-           zero_NA = NA) %>% 
-  write_xlsx("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/03_QC1/table/zero-NA-overview_empty.xlsx")
+dat_out_overview <- data.table(Name = stns_to_check,
+                               OK = NA,
+                               zero_NA = NA)
+
+dat_out_overview %>% 
+  write_xlsx("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/03_QC1/v02/table/zero-NA-overview_empty.xlsx")
+
+
+
+
+# prefill overview table and copy files -----------------------------------
+
+dat_0na_overview <- read_excel("manual-qc/v01/zero-NA-overview_filled.xlsx")
+setDT(dat_0na_overview)
+
+dat_out_overview_prefilled <- copy(dat_out_overview)
+
+dat_out_overview_prefilled[, .(Name)] %>% 
+  merge(dat_0na_overview, all.x = T) -> dat_out_overview_prefilled2
+
+
+dat_out_overview_prefilled2 %>% 
+  write_xlsx("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/03_QC1/v02/table/zero-NA-overview_prefilled-v01.xlsx")
+
+
+# copy prefilled files and empty ones, too
+library(fs)
+files_prefilled_in <- path("manual-qc/v01/zero-NA_filled/", 
+                           dat_out_overview_prefilled2[zero_NA == 1, Name], ext = "xlsx")
+
+files_prefilled_out <- path("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/03_QC1/v02/table/zero-NA_prefilled-v01/",
+                            path_file(files_prefilled_in))
+
+file_copy(files_prefilled_in, files_prefilled_out)
+
+
+
+files_copy_in <- path("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/03_QC1/v02/table/zero-NA/", 
+                      dat_out_overview_prefilled2[is.na(zero_NA) | zero_NA != 1, Name], ext = "xlsx")
+
+files_copy_out <- path("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/03_QC1/v02/table/zero-NA_prefilled-v01/",
+                       path_file(files_copy_in))
+
+file_copy(files_copy_in, files_copy_out)
 
 
 

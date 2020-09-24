@@ -61,11 +61,11 @@ dat_window <- dat_check[,
 
 dat_plot <- merge(dat_window, dat_all, by = c("Name", "Date"))
 
-pdf("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/03_QC1/fig/temporal-consistency.pdf",
+pdf("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/03_QC1/v02/fig/temporal-consistency.pdf",
     width = 12, height = 8)
 
 for(i_idn_grp9 in sort(unique(dat_check$idn_grp9))){
-  dat_plot[idn == i_idn] %>% 
+  dat_plot[idn == i_idn_grp9] %>% 
     .[1, paste0(Provider, " / ", Name, " / ", Date_error)] -> tit
   
   gg <- 
@@ -97,14 +97,41 @@ dat_table <- merge(dat_window_table, dat_all, by = c("Name", "Date"))
 
 setkey(dat_table, idn, Date)
 
-dat_out <- dat_table[, .(Name, Date_error, Date, dd = Date == Date_error, HN, HS)]
+dat_out <- dat_table[, .(idn, Name, Date_error, Date, dd = Date == Date_error, HN, HS)]
 dat_out[, dd := ifelse(dd, "X", "")]
 
 write_xlsx(
   dat_out,
-  "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/03_QC1/table/temporal-consistency_empty.xlsx"
+  "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/03_QC1/v02/table/temporal-consistency_empty.xlsx"
 )
 
+
+
+
+# pre-filled from v01 -----------------------------------------------------
+
+dat_tc <- read_excel("manual-qc/v01/temporal-consistency_filled.xlsx")
+setDT(dat_tc)
+dat_tc %>% str
+dat_tc[, Date_error := as.Date(Date_error)]
+dat_tc[, Date := as.Date(Date)]
+setkey(dat_tc, Name, Date, Date_error)
+
+dat_out_prefilled <- copy(dat_out)
+setkey(dat_out_prefilled, Name, Date, Date_error)
+
+dat_out_prefilled %>% 
+  merge(dat_tc[, .(Name, Date_error, Date, HS_error, HN_error, OK)],
+        all.x = T) -> dat_out_prefilled2
+
+
+setkey(dat_out_prefilled2, idn, Date)
+setcolorder(dat_out_prefilled2, "idn")
+
+write_xlsx(
+  dat_out_prefilled2,
+  "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/03_QC1/v02/table/temporal-consistency_prefilled-v01.xlsx"
+)
 
 
 

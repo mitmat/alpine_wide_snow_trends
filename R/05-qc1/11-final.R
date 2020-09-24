@@ -44,6 +44,7 @@ is.wholenumber <- function(x, tol = .Machine$double.eps^0.5)  abs(x - round(x)) 
 dat_all[!is.wholenumber(HS), .N, .(Provider, Name)]
 dat_all[Name == "Arabba" & !is.wholenumber(HS)]
 dat_all[Name == "Gurtnellen_CH_SLF" & !is.wholenumber(HS)]
+dat_all[Name == "Gressoney_La_Trinite_Eselbode" & !is.wholenumber(HS)]
 
 # -> ok for HS
 
@@ -62,14 +63,23 @@ dat_all[, HS := as.integer(round(HS))]
 dat_all[HN < 0]
 dat_all[HS < 0]
 
+dat_all[HS < 0, HS := NA]
 
 # maximum daily HN --------------------------------------------------------
 
 dat_all[HN > 200]
 
+dat_all[Name == "Meteomont_Loc_Planpincieux"] %>% 
+  .[Date >= "2007-01-10" & Date <= "2007-02-01"]
+
+dat_all[Name == "Schwagalp_CH_METEOSWISS"] %>% 
+  .[Date >= "2012-02-01" & Date <= "2012-03-01"]
+
+dat_all[HN > 200, HN := NA]
+
 # temporal consistency ----------------------------------------------------
 
-dat_tc <- read_excel("manual-qc/temporal-consistency_filled.xlsx")
+dat_tc <- read_excel("manual-qc/v02/temporal-consistency_prefilled-v01_filled.xlsx")
 setDT(dat_tc)
 dat_tc %>% str
 dat_tc[, Date_error := as.Date(Date_error)]
@@ -92,9 +102,9 @@ dat_all[dat_tc[HS_error == 1], HS := NA]
 
 # zero-NA -----------------------------------------------------------------
 
-dat_0na_overview <- read_excel("manual-qc/zero-NA-overview_filled.xlsx")
+dat_0na_overview <- read_excel("manual-qc/v02/zero-NA-overview_prefilled-v01_filled.xlsx")
 setDT(dat_0na_overview)
-files_sub <- fs::path("manual-qc/zero-NA_filled/", 
+files_sub <- fs::path("manual-qc/v02/zero-NA_prefilled-v01_filled/", 
                       dat_0na_overview[zero_NA == 1, Name], ext = "xlsx")
 l <- lapply(files_sub, read_excel)
 names(l) <- dat_0na_overview[zero_NA == 1, Name]
@@ -116,9 +126,9 @@ dat_all[dat_0na[remove_too == 1], HS := NA]
 
 # suspicious and to check series ------------------------------------------
 
-dat_sac_overview <- read_excel("manual-qc/suspicious-and-check-overview_filled.xlsx")
+dat_sac_overview <- read_excel("manual-qc/v02/series-to-check-overview_prefilled-v01_filled.xlsx")
 setDT(dat_sac_overview)
-files_sub <- fs::path("manual-qc/suspicious-and-check_filled/", 
+files_sub <- fs::path("manual-qc/v02/series-to-check_prefilled-v01_filled/", 
                       dat_sac_overview[remove_some_values == 1, Name], ext = "xlsx")
 l <- lapply(files_sub, read_excel)
 names(l) <- dat_sac_overview[remove_some_values == 1, Name]

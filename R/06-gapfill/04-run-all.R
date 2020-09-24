@@ -31,7 +31,8 @@ setnames(dat_meta_1, c("provider", "name", "long", "lat", "elev"))
 
 vec_dates <- dat_1_w$Date
 
-out_ref_parameter <- "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/04_GAPFILL/aux-ref-parameter/final-HS/"
+# out_ref_parameter <- "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/04_GAPFILL/aux-ref-parameter/final-HS/"
+out_ref_parameter <- NULL
 
 # loop --------------------------------------------------------------------
 

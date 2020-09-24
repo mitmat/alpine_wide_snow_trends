@@ -38,7 +38,7 @@ vec_dates <- dat_1_w$Date
 
 set.seed(1234)
 
-mitmatmisc::init_parallel_ubuntu()
+mitmatmisc::init_parallel_ubuntu(6)
 
 # test sub
 # test_sub_stn <- sample(1:nrow(dat_meta_1), 28)

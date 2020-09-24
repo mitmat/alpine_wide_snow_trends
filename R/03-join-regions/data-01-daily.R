@@ -19,13 +19,16 @@ source("R/functions/safe_names.R")
 # IT_PIEMONTE
 # IT_SMI
 # IT_TN
-# IT_VDA
+# IT_TN_TUM
+# IT_VDA_AIBM
+# IT_VDA_CF
 # IT_VENETO
 # SI_ARSO
 
 provider_all <- c("AT_HZB", "CH_METEOSWISS", "CH_SLF", "DE_DWD", "FR_METEOFRANCE",
-                  "IT_BZ", "IT_FVG", "IT_LOMBARDIA", "IT_PIEMONTE", "IT_SMI", "IT_TN",
-                  "IT_VDA", "IT_VENETO", "SI_ARSO")
+                  "IT_BZ", "IT_FVG", "IT_LOMBARDIA", "IT_PIEMONTE", "IT_SMI", 
+                  "IT_TN", "IT_TN_TUM", "IT_VDA_AIBM", "IT_VDA_CF", 
+                  "IT_VENETO", "SI_ARSO")
 
 
 
@@ -46,8 +49,8 @@ meta_de_hn <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/GERMANY/list
 meta_de_hs <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/GERMANY/list_mergedHS")  
 
 # FR_METEOFRANCE
-meta_fr_hn <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/METEOFRANCE/list_mergedHN.csv")  
-meta_fr_hs <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/METEOFRANCE/list_mergedHS.csv")  
+meta_fr_hn <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/SECOND_ROUND/METEOFRANCE/list_mergedHN.csv")  
+meta_fr_hs <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/SECOND_ROUND/METEOFRANCE/list_mergedHS.csv")  
 
 # IT_BZ
 meta_it_bz <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/00_ORIGINAL_DATA/BOLZANO/list_manual_sites.csv")  
@@ -65,14 +68,21 @@ meta_it_piemonte <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/00_ORIGINAL_DATA/
 
 # IT_SMI
 meta_it_smi_hn <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/00_ORIGINAL_DATA/IT_SMI/list_sites_manual_HN.csv")
-meta_it_smi_hs <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/00_ORIGINAL_DATA/IT_SMI/list_sites_manual_HS.csv")
+meta_it_smi_hs <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/SECOND_ROUND/SMI/list_sites_manual_HS.csv")
 
 # IT_TN
-meta_it_tn <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/TRENTINO/list_merged.csv")
+meta_it_tn <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/SECOND_ROUND/TRENTINO/listMT.csv")
 
-# IT_VDA
-meta_it_vda <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/VDA/list_manual_sites.csv",
-                     encoding = "Latin-1")
+# IT_TN_TUM
+meta_it_tn_tum <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/SECOND_ROUND/TRENTINO/listTUM.csv",
+                        skip = 1, col.names = names(meta_it_tn))
+
+# IT_VDA_AIBM
+meta_it_vda_aibm <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/SECOND_ROUND/VDA/list_sites_HS_AIBM.csv")
+
+# IT_VDA_CF
+meta_it_vda_cf <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/SECOND_ROUND/VDA/list_sites_HS_CF.csv",
+                        encoding = "Latin-1")
 
 # IT_VENETO
 meta_it_veneto <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/00_ORIGINAL_DATA/VENETO/list_manual_sites_filledNAmanual.csv")
@@ -90,7 +100,7 @@ meta_si_hs <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/SLOVENIA/Lis
 # prep
 setnames(meta_it_fvg, c("Name", "Latitude", "Longitude", "Elevation"))
 
-meta_it_vda[, Name := safe_names(Name)]
+meta_it_vda_cf[, Name := safe_names(Name)]
 
 meta_si_hn <- meta_si_hn[!is.na(ID)]
 meta_si_hn[, stn_name_safe := stringi::stri_trans_totitle(safe_names(tolower(NAME)))]
@@ -103,8 +113,8 @@ meta_si_hs_out <- meta_si_hs[, .(Name = stn_name_safe, Longitude = LONG, Latitud
 # join hn
 l_meta_hn <- list(meta_at, meta_ch_meteoswiss_hn, meta_ch_slf, meta_de_hn,
                   meta_fr_hn, meta_it_bz, meta_it_fvg, meta_it_lombardia,
-                  meta_it_piemonte, meta_it_smi_hn, meta_it_tn, meta_it_vda,
-                  meta_it_veneto, meta_si_hn_out)
+                  meta_it_piemonte, meta_it_smi_hn, meta_it_tn, meta_it_tn_tum,
+                  meta_it_vda_aibm, meta_it_vda_cf, meta_it_veneto, meta_si_hn_out)
 names(l_meta_hn) <- provider_all
 lapply(l_meta_hn, names)
 
@@ -113,8 +123,8 @@ join_meta_hn <- rbindlist(l_meta_hn, use.names = T, fill = T, idcol = "provider"
 # join hs
 l_meta_hs <- list(meta_at, meta_ch_meteoswiss_hs, meta_ch_slf, meta_de_hs,
                   meta_fr_hs, meta_it_bz, meta_it_fvg, meta_it_lombardia,
-                  meta_it_piemonte, meta_it_smi_hs, meta_it_tn, meta_it_vda,
-                  meta_it_veneto, meta_si_hs_out)
+                  meta_it_piemonte, meta_it_smi_hs, meta_it_tn, meta_it_tn_tum,
+                  meta_it_vda_aibm, meta_it_vda_cf, meta_it_veneto, meta_si_hs_out)
 names(l_meta_hs) <- provider_all
 lapply(l_meta_hs, names)
 
@@ -163,8 +173,8 @@ data_de_hn <- f_read_plus("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/GERMAN
 data_de_hs <- f_read_plus("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/GERMANY/mergedHS.csv")  
 
 # FR_METEOFRANCE
-data_fr_hn <- f_read_plus("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/METEOFRANCE/mergedHN.csv")  
-data_fr_hs <- f_read_plus("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/METEOFRANCE/mergedHS.csv")  
+data_fr_hn <- f_read_plus2("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/SECOND_ROUND/METEOFRANCE/mergedHN.csv")  
+data_fr_hs <- f_read_plus2("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/SECOND_ROUND/METEOFRANCE/mergedHS.csv")  
 
 # IT_BZ
 data_it_bz_hn <- f_read_plus("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/00_ORIGINAL_DATA/BOLZANO/read_manualHN.csv")  
@@ -210,22 +220,26 @@ data_it_piemonte_hs <- f_read_plus("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/00_ORIGI
 
 # IT_SMI
 data_it_smi_hn <- f_read_plus("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/00_ORIGINAL_DATA/IT_SMI/read_manualHN.csv")
-data_it_smi_hs <- f_read_plus("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/00_ORIGINAL_DATA/IT_SMI/read_manualHS.csv")
+data_it_smi_hs <- f_read_plus("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/SECOND_ROUND/SMI/read_manualHS.csv")
 
 # IT_TN
 data_it_tn_hn <- f_read_plus("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/TRENTINO/mergedHN.csv")
-data_it_tn_hs <- f_read_plus("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/TRENTINO/mergedHS.csv")
+data_it_tn_hs <- f_read_plus2("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/SECOND_ROUND/TRENTINO/dataMT.csv")
 
-# IT_VDA
-data_it_vda_hs <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/VDA/merged_manualHS.csv", 
-                        encoding = "Latin-1") 
-i_century <- which(data_it_vda_hs$Date == "01.01.00")
-data_it_vda_hs[1:(i_century-1), Date := paste0(substr(Date, 1, 6), "19", substr(Date, 7, 8))]
-data_it_vda_hs[i_century:.N, Date := paste0(substr(Date, 1, 6), "20", substr(Date, 7, 8))]
-data_it_vda_hs <- melt(data_it_vda_hs, id.vars = "Date", variable.factor = F)
-data_it_vda_hs[, Date := dmy(Date)]
-data_it_vda_hs[, variable := safe_names(variable)]
-summary(data_it_vda_hs)
+# IT_TN_TUM
+data_it_tn_tum_hs <- f_read_plus("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/SECOND_ROUND/TRENTINO/dataTUM.csv")
+
+# IT_VDA_CF
+data_it_vda_cf_hs <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/SECOND_ROUND/VDA/read_HS_CF.csv",
+                           encoding = "Latin-1")
+data_it_vda_cf_hs <- melt(data_it_vda_cf_hs, id.vars = "Date", variable.factor = F)
+data_it_vda_cf_hs[, Date := ymd(Date)]
+data_it_vda_cf_hs[, variable := safe_names(variable)]
+
+# IT_VDA_AIBM
+data_it_vda_aibm_hn <- f_read_plus("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/00_ORIGINAL_DATA/VDA_AIBM/read_HN.csv")
+data_it_vda_aibm_hs <- f_read_plus("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/SECOND_ROUND/VDA/read_HS_AIBM.csv")
+
 
 # IT_VENETO
 fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/00_ORIGINAL_DATA/VENETO/read_manualHN.csv",
@@ -280,9 +294,9 @@ setnames(data_si_hs, "stn_name_safe", "variable")
 # join hn
 l_data_hn <- list(data_at_hn, data_ch_meteoswiss_hn, data_ch_slf_hn, data_de_hn,
                   data_fr_hn, data_it_bz_hn, data_it_fvg_hn, data_it_lombardia_hn,
-                  data_it_piemonte_hn, data_it_smi_hn, data_it_tn_hn, # data_it_vda,
+                  data_it_piemonte_hn, data_it_smi_hn, data_it_tn_hn, data_it_vda_aibm_hn,
                   data_it_veneto_hn, data_si_hn)
-names(l_data_hn) <- provider_all[provider_all != "IT_VDA"]
+names(l_data_hn) <- provider_all[!provider_all %in% c("IT_TN_TUM", "IT_VDA_CF")]
 lapply(l_data_hn, names)
 
 join_data_hn <- rbindlist(l_data_hn, use.names = T, fill = T, idcol = "provider")
@@ -291,8 +305,8 @@ join_data_hn <- rbindlist(l_data_hn, use.names = T, fill = T, idcol = "provider"
 # join hs
 l_data_hs <- list(data_at_hs, data_ch_meteoswiss_hs, data_ch_slf_hs, data_de_hs,
                   data_fr_hs, data_it_bz_hs, data_it_fvg_hs, data_it_lombardia_hs,
-                  data_it_piemonte_hs, data_it_smi_hs, data_it_tn_hs, data_it_vda_hs,
-                  data_it_veneto_hs, data_si_hs)
+                  data_it_piemonte_hs, data_it_smi_hs, data_it_tn_hs, data_it_tn_tum_hs,
+                  data_it_vda_aibm_hs, data_it_vda_cf_hs, data_it_veneto_hs, data_si_hs)
 names(l_data_hs) <- provider_all
 lapply(l_data_hs, names)
 
@@ -301,19 +315,20 @@ join_data_hs <- rbindlist(l_data_hs, use.names = T, fill = T, idcol = "provider"
 
 # final checks ------------------------------------------------------------
 
-# meta & data for VDA correspond
-stns_data <- data_it_vda_hs[, .(Name = unique(variable), in_data = "yes")]
-merge(meta_it_vda, stns_data, all = T)
-join_meta_hn[Name == "Gressoney_La_Trinite", Name := "Gressoney_La_Trinite_Col_d_Olen"]
-join_meta_hs[Name == "Gressoney_La_Trinite", Name := "Gressoney_La_Trinite_Col_d_Olen"]
-meta_it_vda[Name == "Gressoney_La_Trinite", Name := "Gressoney_La_Trinite_Col_d_Olen"]
+# meta & data for VDA_CF correspond
+# stns_data <- data_it_vda_cf_hs[, .(Name = unique(variable), in_data = "yes")]
+# merge(meta_it_vda_cf, stns_data, all = T)
+# join_data_hn[variable == "Bioz_Place_Moulin"]
+# join_data_hs[variable == "Bioz_Place_Moulin", variable := "Bionaz_Place_Moulin"]
+# data_it_vda_cf_hs[variable == "Bioz_Place_Moulin", variable := "Bionaz_Place_Moulin"]
 
-# SMI not duplicates in PIEMONTE & VDA
-smi_duplicated <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/SMI/duplicates_smi_piemonte.txt")
-join_meta_hn <- join_meta_hn[!(provider == "IT_PIEMONTE" & Name %in% smi_duplicated$Piedmont)]
-join_meta_hs <- join_meta_hs[!(provider == "IT_PIEMONTE" & Name %in% smi_duplicated$Piedmont)]
-join_data_hn <- join_data_hn[!(provider == "IT_PIEMONTE" & variable %in% smi_duplicated$Piedmont)]
-join_data_hs <- join_data_hs[!(provider == "IT_PIEMONTE" & variable %in% smi_duplicated$Piedmont)]
+# SMI not duplicates in PIEMONTE & VDA (not in second round)
+# smi_duplicated <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/01_MERGING/SMI/duplicates_smi_piemonte.txt")
+# meta_it_smi_hs
+# join_meta_hn <- join_meta_hn[!(provider == "IT_PIEMONTE" & Name %in% smi_duplicated$Piedmont)]
+# join_meta_hs <- join_meta_hs[!(provider == "IT_PIEMONTE" & Name %in% smi_duplicated$Piedmont)]
+# join_data_hn <- join_data_hn[!(provider == "IT_PIEMONTE" & variable %in% smi_duplicated$Piedmont)]
+# join_data_hs <- join_data_hs[!(provider == "IT_PIEMONTE" & variable %in% smi_duplicated$Piedmont)]
 
                         
 # meta names unique (esp SLF & MSWISS)
@@ -334,10 +349,14 @@ join_meta_hn[, .N, .(Name)] %>% summary
 join_meta_hs[, .N, .(Name)] %>% summary
 
 # stns meta == data
-# issue with "na" in meteoswiss merged data
+join_data_hn[variable == "Valloire_cl", variable := "Valloire_forest"]
+
+# issue with "na" in some merged data
 stns_data_hn <- unique(join_data_hn$variable)
 missing_meta_hn <- sort(stns_data_hn[! stns_data_hn %in% join_meta_hn$Name])
-missing_meta_hn_rename <- sort(join_meta_hn[provider == "CH_METEOSWISS" & grepl("na", Name), Name])
+missing_meta_hn_rename <- sort(join_meta_hn[provider %in% c("CH_METEOSWISS", "FR_METEOFRANCE") & 
+                                              grepl("na", Name), 
+                                            Name])
 names(missing_meta_hn_rename) <- missing_meta_hn
 join_data_hn[variable %in% missing_meta_hn, variable := missing_meta_hn_rename[variable]]
 
@@ -346,9 +365,14 @@ join_meta_hn[Name %in% stns_data_hn]
 length(stns_data_hn)
 join_meta_hn <- join_meta_hn[Name %in% stns_data_hn]
 
+
+join_data_hs[variable == "Rifugio_camuli", variable := "Rifugio_Nacamuli"]
 stns_data_hs <- unique(join_data_hs$variable)
 missing_meta_hs <- sort(stns_data_hs[! stns_data_hs %in% join_meta_hs$Name])
-missing_meta_hs_rename <- sort(join_meta_hs[provider == "CH_METEOSWISS" & grepl("na", Name), Name])
+missing_meta_hs_rename <- sort(join_meta_hs[provider %in% c("CH_METEOSWISS", "FR_METEOFRANCE", 
+                                                            "IT_TN", "IT_VDA_AIBM", "IT_VDA_CF") &
+                                              grepl("na", Name), 
+                                            Name])
 names(missing_meta_hs_rename) <- missing_meta_hs
 join_data_hs[variable %in% missing_meta_hs, variable := missing_meta_hs_rename[variable]]
 
@@ -377,10 +401,11 @@ no_na_data_hs[,
 
 
 # only 1 value per date
-check_nn <- complete_data_hn[, .N, .(variable, Date)]
-summary(check_nn)
-check_nn <- complete_data_hs[, .N, .(variable, Date)]
-summary(check_nn)
+check_nn_hn <- complete_data_hn[, .N, .(variable, Date)]
+summary(check_nn_hn)
+check_nn_hs <- complete_data_hs[, .N, .(variable, Date)]
+summary(check_nn_hs)
+
 
 # split and write ---------------------------------------------------------
 
