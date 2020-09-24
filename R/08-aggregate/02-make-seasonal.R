@@ -96,24 +96,79 @@ add_gb_meta <- gb_meta[stn_name_safe %in% add_gb_OctSep$Name]
 hzb_meta <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/06_SEASONAL/from-non-daily-data/hzb/meta.csv")
 hzb_data <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/06_SEASONAL/from-non-daily-data/hzb/data.csv")
 
-hzb_data %>% summary
-hzb_past_stns <- sort(unique(hzb_data$stn_name_safe))
-dat_all_OctSep[Name %in% hzb_past_stns, .N, Name]
-meta_all[Name %in% hzb_past_stns]
-meta_all[Provider == "AT_HZB"]
 
-# -> many stations in past HZB, which are not in daily data (and vice versa)
+hzb_merge <- merge(
+  dat_all_OctSep[Name %in% meta_all[Provider == "AT_HZB", Name],
+                 .(Name, hydro_year, HN_daily = HN)],
+  hzb_data[, .(Name = stn_name_safe, hydro_year, HN_seasonal = sum_hn)],
+  by = c("Name", "hydro_year"), all = T
+)
 
-hzb_data[stn_name_safe %in% meta_all$Name] %>% summary
-hzb_data[! stn_name_safe %in% meta_all$Name] %>% summary
-# -> contains also data after 1970, try to merge and see if differences?
+hzb_merge[, HN_merge := HN_daily]
+hzb_merge[is.na(HN_merge), HN_merge := HN_seasonal]
+
+hzb_merge_meta <- unique(rbind(
+  meta_all[Provider == "AT_HZB"],
+  hzb_meta[!stn_name_safe %in% meta_all[Provider == "AT_HZB", Name],
+           .(Provider = "AT_HZB", Name = stn_name_safe, Longitude = lon,
+             Latitude = lat, Elevation = elev)]
+))
+
+add_hzb_OctSep <- hzb_merge[!is.na(HN_merge),
+                            .(Name, hydro_year, HN = HN_merge)]
+add_hzb_meta <- hzb_merge_meta[Name %in% add_hzb_OctSep$Name]
 
 
+# merge all (Oct-Sep) ---------------------------------------------------------------
+
+# remove hzb from daily, since included in add_hzb
+
+merge_meta <- rbindlist(use.names = T, fill = T, list(
+  meta_all[Provider != "AT_HZB"],
+  add_gb_meta[, .(Provider = "IT_TN_GB", Name = stn_name_safe, Longitude = lon,
+                  Latitude = lat, Elevation = elev)],
+  add_hzb_meta
+))
+setkey(merge_meta, Provider, Name)
+
+merge_data <- rbindlist(use.names = T, fill = T, list(
+  dat_all_OctSep[!Name %in% meta_all[Provider == "AT_HZB", Name]],
+  add_gb_OctSep,
+  add_smi_OctSep,
+  add_hzb_OctSep
+))
 
 
-# merge all ---------------------------------------------------------------
+out_data_long <- merge_data[!is.na(HN) | !is.na(HS), .(Name, hydro_year, HN, HS)]
+out_data_long[,
+              .(hydro_year = seq(min(hydro_year), max(hydro_year))),
+              Name] %>% 
+  merge(out_data_long, all.x = T) -> out_data_long
+out_meta_long <- merge_meta[Name %in% out_data_long$Name]
+
+out_data_wide_hs <- dcast(out_data_long[!is.na(HS)],
+                          hydro_year ~ Name, value.var = "HS")
+out_meta_wide_hs <- merge_meta[Name %in% colnames(out_data_wide_hs)]
+
+out_data_wide_hn <- dcast(out_data_long[!is.na(HN)],
+                          hydro_year ~ Name, value.var = "HN")
+out_meta_wide_hn <- merge_meta[Name %in% colnames(out_data_wide_hn)]
 
 
+path_out <- "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/06_SEASONAL/Oct-Sep/"
+if(!dir_exists(path_out)) dir_create(path_out)
+saveRDS(out_data_long, file = path(path_out, "data_long_HN_HS.rds"))
+saveRDS(out_data_wide_hn, file = path(path_out, "data_wide_HN.rds"))
+saveRDS(out_data_wide_hs, file = path(path_out, "data_wide_HS.rds"))
+saveRDS(out_meta_long, file = path(path_out, "meta_long_HN_HS.rds"))
+saveRDS(out_meta_wide_hn, file = path(path_out, "meta_wide_HN.rds"))
+saveRDS(out_meta_wide_hs, file = path(path_out, "meta_wide_HS.rds"))
 
 
+# Nov - May ---------------------------------------------------------------
+
+# also from gapfill
+# reduced stn coverage for AT_HZB_past
+
+# needed?
 
