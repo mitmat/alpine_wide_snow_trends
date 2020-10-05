@@ -12,11 +12,11 @@ library(foreach)
 library(flextable)
 library(officer)
 
-dat_meta_clust <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/meta-with-cluster-01.rds")
+dat_meta_clust <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/sensitivity-gapfill/meta-with-cluster-01.rds")
 
 # choose hydro_year or calendar year
 # dat_lm <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/trends-01-mw-hydro-year.rds")
-dat_lm  <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/trends-02-mw-calendar-year.rds")
+dat_lm  <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/sensitivity-gapfill/trends-02-mw-calendar-year.rds")
 
 # dat_lm_sub <- dat_lm[term == "year0" & mw_year_start %in% c(1961, 1976, 1990)]
 # dat_lm_sub <- dat_lm[term == "year0" & mw_year_start %in% c(1961, 1971, 1981, 1990)]
@@ -85,7 +85,7 @@ gg <- dat_plot %>%
   geom_point(size = 0.3)+
   # geom_smooth(se = F, size = 0.5)+
   scale_color_brewer("Region", palette = "Set1")+
-  # scale_x_continuous(n.breaks = 4)+
+  scale_x_continuous(n.breaks = 4)+
   facet_grid(mw_year_fct ~ month_fct, scales = "free_x", space = "free_x")+
   geom_blank(inherit.aes = F, data = dat_blank3, aes(y = 0, x = value*10))+
   theme_bw(14)+
@@ -99,7 +99,7 @@ gg <- dat_plot %>%
 
 
 ggsave(gg,
-       file = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/Figure 6.png",
+       file = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/sensitivity-gapfill/Figure 6.png",
        width = 12, height = 14)  
 
 # supplement: table with constant station set? needed?

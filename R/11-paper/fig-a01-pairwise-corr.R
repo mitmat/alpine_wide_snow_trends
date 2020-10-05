@@ -78,7 +78,7 @@ dat_plot_m[xx <= 400 & yy <= 1000] %>%
   xlab("Horizontal distance [km]")+
   ylab("Vertical distance [m]")
 
-ggsave(filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/appendix-01-pairwise-corr.png",
+ggsave(filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/Figure A1.png",
        width = 8, height = 4)
 
 

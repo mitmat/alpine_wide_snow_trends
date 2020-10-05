@@ -11,7 +11,8 @@ library(raster)
 library(cowplot)
 
 
-dat_meta_cluster <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/meta-with-cluster-01.rds")
+
+dat_meta_cluster <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/sensitivity-gapfill/meta-with-cluster-01.rds")
 
 sf_meta <- st_as_sf(dat_meta_cluster,
                     coords = c("Longitude", "Latitude"),
@@ -19,11 +20,19 @@ sf_meta <- st_as_sf(dat_meta_cluster,
 
 # mapview(sf_meta)
 
-sf_meta[c(107, 471, 947, 640, 237, 1685,
-          1954, 1949, 329, 1943, 818, 1085,
-          1190, 1958, 1411, 1345, 1836,
-          1488, 1708, 606, 1010, 350, 
-          1283, 1936, 55, 519), ] %>% 
+# sf_meta[c(107, 471, 947, 640, 237, 1685,
+#           1954, 1949, 329, 1943, 818, 1085,
+#           1190, 1958, 1411, 1345, 1836,
+#           1488, 1708, 606, 1010, 350, 
+#           1283, 1936, 55, 519), ] %>% 
+#   st_combine() %>%
+#   st_cast("POLYGON") -> sf_man_hull
+
+sf_meta[c(106, 467, 941, 635, 234, 1767,
+          1941, 1936, 325, 1930, 812, 1080,
+          1184, 1945, 1404, 1340, 1824,
+          1479, 1696, 601, 1005, 346,
+          1278, 1923, 54, 515), ] %>%
   st_combine() %>%
   st_cast("POLYGON") -> sf_man_hull
 
@@ -31,7 +40,7 @@ sf_meta[c(107, 471, 947, 640, 237, 1685,
 
 
 # longterm subset
-dat_trends <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/trends-03-full_1971-2019-calyear.rds")
+dat_trends <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/sensitivity-gapfill/trends-03-full_1971-2019-calyear.rds")
 dat_meta_long <- dat_meta_cluster[Name %in% dat_trends$Name]
 sf_meta_long <- filter(sf_meta, Name %in% dat_trends$Name)
 
@@ -41,7 +50,8 @@ sf_meta_long <- filter(sf_meta, Name %in% dat_trends$Name)
 # get DEM (EU DEM v1.1) -----------------------------------------------------------------
 
 
-rr1 <- raster("/mnt/CEPH_BASEDATA/GIS/EUROPE/ELEVATION/EU_DEM_v1.1/DEM_mosaic_clip_wgs84_updated.tif")
+# rr1 <- raster("/mnt/CEPH_BASEDATA/GIS/EUROPE/ELEVATION/EU_DEM_v1.1/DEM_mosaic_clip_wgs84_updated.tif")
+rr1 <- raster("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/srtm30_alps.tif")
 rr1
 # plot(rr1)
 
@@ -117,10 +127,13 @@ gg_out <- ggdraw()+
   draw_plot(gg_in, x = 0.6, y = 0.6, width = 0.3, height = 0.3)
 
   
-  
+
 ggsave(gg_out,
-       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/Figure A7.png",
-       width = 8, height = 4)  
+       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/sensitivity-gapfill/Figure B5.png",
+       width = 8, height = 4)
+
+
+
 
 
 # numbers -----------------------------------------------------------------
@@ -130,3 +143,12 @@ dat_plot[ff == "DEM" & elev_xmean > 3000, sum (perc)]
 dat_plot[ff == "DEM" & elev_xmean > 2000 & elev_xmean < 3000, sum(perc)]
 dat_plot[ff == "DEM" & elev_xmean > 1000 & elev_xmean < 2000, sum(perc)]
 dat_plot[ff == "DEM" & elev_xmean < 1000, sum(perc)]
+
+sf_man_hull
+area_m2 <- st_area(sf_man_hull)
+area_km2 <- area_m2 / 1000 / 1000
+area_km2
+
+dat_plot[, sum(N), .(ff)]
+area_km2 / 2162
+area_km2 / 854

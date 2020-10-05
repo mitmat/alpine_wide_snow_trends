@@ -13,9 +13,9 @@ library(flextable)
 library(officer)
 
 
-dat_meta_clust <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/meta-with-cluster-01.rds")
+dat_meta_clust <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/sensitivity-gapfill/meta-with-cluster-01.rds")
 
-dat_lm_full  <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/trends-03-full_1971-2019-calyear.rds")
+dat_lm_full  <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/sensitivity-gapfill/trends-03-full_1971-2019-calyear.rds")
 
 # dat_lm_full[!is.na(statistic)] %>%
 #   dcast(Name + month ~ term, value.var = "estimate") %>%
@@ -41,8 +41,11 @@ dat_plot_full
 # manual limits y (elev)
 dat_ylim <- dat_plot_full[, .(max_elev = max(Elevation)), .(cluster_fct)] 
 setorder(dat_ylim, cluster_fct)
-dat_ylim[, max_elev := c(1250, 1250, 3000, 3000, 1250)]
+# dat_ylim[, max_elev := c(1250, 1250, 3000, 3000, 1250)]
+dat_ylim[, max_elev := c(1250, 3000, 3000, 1250)]
 
+cols_manual <- setNames(scales::brewer_pal(palette = "Set1")(5),
+                        levels(dat_plot_full$cluster_fct))
 
 gg <- dat_plot_full %>% 
   ggplot(aes(estimate*10, Elevation, xmin = est_low*10, xmax = est_high*10, colour = cluster_fct))+
@@ -53,7 +56,8 @@ gg <- dat_plot_full %>%
   facet_grid(cluster_fct ~ month_fct, scales = "free", space = "free")+ # free_x or free
   theme_bw()+
   theme(panel.grid.minor = element_blank())+
-  scale_color_brewer("", palette = "Set1", guide = F)+
+  # scale_color_brewer("", palette = "Set1", guide = F)+
+  scale_color_manual("", values = cols_manual, guide = F)+
   scale_x_continuous(breaks = 10*seq(-4, 4, by = 2))+
   scale_y_continuous(breaks = seq(0, 3000, by = 500), limits = c(0, NA))+
   geom_blank(inherit.aes = F, data = dat_ylim, aes(x = 0, y = max_elev))+
@@ -62,7 +66,7 @@ gg <- dat_plot_full %>%
 
 
 ggsave(gg,
-       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/Figure 5.png",
+       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/sensitivity-gapfill/Figure 6.png",
        width = 10,
        height = 8)
 
@@ -102,41 +106,36 @@ setorder(dat_table_out2, month_fct, elev_fct, cluster_fct, variable)
 dat_table_out3 <- dat_table_out2 %>% 
   dcast(month_fct + cluster_fct ~ elev_fct + variable, value.var = c("value"))
 
+
 dat_header <- data.table(col_keys = names(dat_table_out3))
 dat_header[, c("row1", "row2") := tstrsplit(col_keys, "_")]
 # dat_header[1:2, ":="(row1 = c("",""), row2 = c("Month", "Region"))]
 dat_header[1:2, ":="(row1 = c("Month", "Region"), row2 = c("", ""))]
-row2_rename <- setNames(c("#", "mean", "sig-", "sig+"),
-                        c("nn", "mu", "neg", "pos"))
-dat_header[, row2 := row2_rename[row2]]
 
-cols_perc <- dat_header[row2 %in% c("sig-", "sig+"), col_keys]
+
+cols_perc <- dat_header[row2 %in% c("pos", "neg"), col_keys]
 dat_table_out3[, c(cols_perc) := lapply(.SD, scales::percent, .1), .SDcols = cols_perc]
-
-dat_table_out3[, cluster_fct := fct_recode(cluster_fct, "N&hA" = "North & high Alpine")]
 
 ft <- dat_table_out3 %>% 
   flextable() %>%
   set_header_df(dat_header) %>% 
-  colformat_int(j = dat_header[row2 == "#", col_keys]) %>% 
-  colformat_num(j = dat_header[row2 == "mean", col_keys]) %>% 
+  colformat_int(j = dat_header[row2 == "nn", col_keys]) %>% 
+  colformat_num(j = dat_header[row2 == "mu", col_keys]) %>% 
   # colformat_num(j = dat_header[row2 == "mu", col_keys]) %>% 
   theme_booktabs() %>%
-  hline(i = 1:6*5, border = fp_border()) %>% 
-  vline(j = 2 + 0:5*4, border = fp_border()) %>% 
   merge_h(part = "header") %>%
-  # align(align = "left", part = "all") %>%
-  align(j = dat_header[1:2, col_keys], align = "left") %>% 
-  align(j = dat_header[-c(1:2), col_keys], align = "center", part = "all") %>% 
+  align(align = "left", part = "all") %>%
   merge_v(j = "month_fct") %>%
   valign(j = "month_fct", valign = "top") %>%
-  fix_border_issues() %>% 
-  fontsize(size = 6, part = "all") %>% 
-  font(fontname = "Times New Roman", part = "all") # %>% autofit() 
+  hline(i = c(3, 3 + 1:4*5), border = fp_border()) %>% 
+  vline(j = 2 + 0:5*4, border = fp_border()) %>% 
+  fix_border_issues()#  %>% autofit() 
+
+
 
 read_docx() %>% 
   body_add_flextable(ft) %>% 
-  print(target = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/table/Table 2 - zenodo 500m.docx")
+  print(target = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/table/sensitivity-gapfill/Table 2 - zenodo 500m.docx")
 
 
 
@@ -179,39 +178,31 @@ dat_header <- data.table(col_keys = names(dat_table_out3))
 dat_header[, c("row1", "row2") := tstrsplit(col_keys, "_")]
 # dat_header[1:2, ":="(row1 = c("",""), row2 = c("Month", "Region"))]
 dat_header[1:2, ":="(row1 = c("Month", "Region"), row2 = c("", ""))]
-row2_rename <- setNames(c("#", "mean", "sig-", "sig+"),
-                        c("nn", "mu", "neg", "pos"))
-dat_header[, row2 := row2_rename[row2]]
 
-cols_perc <- dat_header[row2 %in% c("sig-", "sig+"), col_keys]
+
+cols_perc <- dat_header[row2 %in% c("pos", "neg"), col_keys]
 dat_table_out3[, c(cols_perc) := lapply(.SD, scales::percent, .1), .SDcols = cols_perc]
-
-dat_table_out3[, cluster_fct := fct_recode(cluster_fct, "N&hA" = "North & high Alpine")]
 
 ft <- dat_table_out3 %>% 
   flextable() %>%
   set_header_df(dat_header) %>% 
-  colformat_int(j = dat_header[row2 == "#", col_keys]) %>% 
-  colformat_num(j = dat_header[row2 == "mean", col_keys]) %>% 
+  colformat_int(j = dat_header[row2 == "nn", col_keys]) %>% 
+  colformat_num(j = dat_header[row2 == "mu", col_keys]) %>% 
   # colformat_num(j = dat_header[row2 == "mu", col_keys]) %>% 
   theme_booktabs() %>%
-  hline(i = 1:6*5, border = fp_border()) %>% 
+  hline(i = c(3, 3 + 1:4*5), border = fp_border()) %>% 
   vline(j = 2 + 0:2*4, border = fp_border()) %>% 
   merge_h(part = "header") %>%
-  # align(align = "left", part = "all") %>%
-  align(j = dat_header[1:2, col_keys], align = "left") %>% 
-  align(j = dat_header[-c(1:2), col_keys], align = "center", part = "all") %>% 
+  align(align = "left", part = "all") %>%
   merge_v(j = "month_fct") %>%
   valign(j = "month_fct", valign = "top") %>%
-  fix_border_issues() %>% 
-  fontsize(size = 9, part = "all") %>% 
-  font(fontname = "Times New Roman", part = "all") # %>% autofit() 
+  fix_border_issues() # %>% autofit() 
 
 
 
 read_docx() %>% 
   body_add_flextable(ft) %>% 
-  print(target = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/table/Table 2.docx")
+  print(target = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/table/sensitivity-gapfill/Table 2.docx")
 
 
 # some numbers ------------------------------------------------------------
@@ -225,71 +216,12 @@ with(dat_table, table(trend_sign)) %>% prop.table()
 with(dat_table, table(trend_sign, p.value < 0.05))
 with(dat_table, table(trend_sign, p.value < 0.05)) %>% prop.table()
 
-dat_table[, 10*mean(estimate), keyby = .(month_fct, elev_fct)]
+dat_table[, mean(estimate), keyby = .(month_fct, elev_fct)]
 
 dat_table[month %in% c(12, 1, 2), 
-          .(.N, 10*mean(estimate), 10*min(estimate), 10*max(estimate)), 
+          .(.N, mean(estimate), min(estimate), max(estimate)), 
             keyby = .(elev_fct)]
 dat_table[month %in% c(3:5), 
-          .(.N, 10*mean(estimate), 10*min(estimate), 10*max(estimate)), 
+          .(.N, mean(estimate), min(estimate), max(estimate)), 
           keyby = .(elev_fct)]
-
-
-
-# for conclusion
-
-
-
-with(dat_table, table(month_fct, trend_sign))
-with(dat_table, table(month_fct, trend_sign)) %>% prop.table(1)
-
-with(dat_table, table(p.value < 0.05, month_fct, trend_sign))
-with(dat_table, table(p.value < 0.05, month_fct, trend_sign)) %>% prop.table(c(2,3))
-
-
-mitmatmisc::add_season_fct(dat_table)
-
-with(dat_table, table(season, trend_sign))
-with(dat_table, table(season, trend_sign)) %>% prop.table(1)
-
-with(dat_table, table(p.value < 0.05, season, trend_sign))
-with(dat_table, table(p.value < 0.05, season, trend_sign)) %>% prop.table(c(2,3))
-
-dat_table[, ns_fct := fct_collapse(cluster_fct,
-                                   "North" = c("NE", "NW", "North & high Alpine"),
-                                   "South" = c("SW", "SE"))]
-
-dat_table[month %in% c(12, 1, 2), 
-          .(.N, 10*mean(estimate), 10*min(estimate), 10*max(estimate)), 
-          keyby = .(elev_fct, ns_fct)]
-dat_table[month %in% c(3:5), 
-          .(.N, 10*mean(estimate), 10*min(estimate), 10*max(estimate)), 
-          keyby = .(elev_fct, ns_fct)]
-
-
-dat_conclusion_table <- dat_table[season != "SON",
-          .(nn = .N,
-            mean = 10*mean(estimate), 
-            min = 10*min(estimate), 
-            max = 10*max(estimate),
-            sd = 10*sd(estimate)),
-          .(elev_fct, ns_fct, season)]
-
-dat_conclusion_table[, mmm := sprintf("%0.1f (%0.1f, %0.1f)", mean, min, max)]
-
-dat_conclusion_table %>% 
-  dcast(elev_fct + ns_fct ~ season, value.var = c("mmm", "nn")) %>% 
-  flextable(col_keys = c("elev_fct", "ns_fct", "mmm_DJF", "nn_DJF", "mmm_MAM", "nn_MAM")) %>% 
-  set_header_labels("elev_fct" = "Elevation", "ns_fct" = "Region", 
-                    "mmm_DJF" = "DJF mean (min, max)", "nn_DJF" = "DJF #", 
-                    "mmm_MAM" = "MAM mean (min, max)", "nn_MAM" = "MAM #") %>% 
-  merge_v(j = "elev_fct") %>% 
-  valign(j = "elev_fct", valign = "top") %>% 
-  font(fontname = "Times New Roman") %>% 
-  fix_border_issues() %>% 
-  autofit() -> ft
-
-read_docx() %>% 
-  body_add_flextable(ft) %>% 
-  print(target = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/table/Table 3.docx")
 

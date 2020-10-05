@@ -20,7 +20,7 @@ library(cluster)
 
 
 # snow cluster
-dat_meta_cluster <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/meta-with-cluster-01.rds")
+dat_meta_cluster <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/sensitivity-gapfill/meta-with-cluster-01.rds")
 sf_meta <- st_as_sf(dat_meta_cluster,
                     coords = c("Longitude", "Latitude"),
                     crs = 4326)
@@ -54,7 +54,7 @@ ggplot()+
 
 
 ggsave(gg_clust,
-       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/Figure 4.png",
+       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/sensitivity-gapfill/Figure 4.png",
        width = 7, height = 4, scale = 1.2)
 
 
@@ -64,7 +64,7 @@ ggsave(gg_clust,
 
 
 
-dat_meta_cluster2 <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/meta-with-cluster-02-pca-full.rds")
+dat_meta_cluster2 <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/sensitivity-gapfill/meta-with-cluster-02-pca-full.rds")
 
 gg_clust2 <-
   dat_meta_cluster2 %>% 
@@ -84,7 +84,7 @@ gg_clust2 <-
   guides(color = guide_legend(override.aes = list(size = 4)))
 
 ggsave(gg_clust2,
-       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/Figure B3.png",
+       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/sensitivity-gapfill/Figure B3.png",
        width = 7, height = 4)
 
 
@@ -116,11 +116,11 @@ dat_comp_clust[, sum(cluster_eof == cluster_pca)]
 
 # check misclustered stations ---------------------------------------------
 
-load("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/regions-01-sinkr-eof.rda")
+load("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/sensitivity-gapfill/regions-01-sinkr-eof.rda")
 mat_clust3 <- sinkr_eof$u[, 1:5]
 rownames(mat_clust3) <- colnames(mat_eof)
 
-km_fit <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/regions-03-km-obj.rds")
+km_fit <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/sensitivity-gapfill/regions-03-km-obj.rds")
 
 km_sil <- silhouette(km_fit$cluster, dist(mat_clust3))
 
@@ -129,11 +129,11 @@ dat_sil <- data.table(Name = names(km_fit$cluster),
                        cluster_neigh = km_sil[, 2],
                        sil_width = km_sil[, 3])
 dat_sil[, cluster_fct := fct_recode(factor(cluster),
-                                    "NW" = "1", "NE" = "2",  "SW" = "3",
-                                    "SE" = "4", "North & high Alpine" = "5")]
+                                    "SW" = "1", "NE" = "2",  "SE" = "3",
+                                    "North & high Alpine" = "4", "NW" = "5")]
 dat_sil[, cluster_neigh_fct := fct_recode(factor(cluster_neigh),
-                                          "NW" = "1", "NE" = "2",  "SW" = "3",
-                                          "SE" = "4", "North & high Alpine" = "5")]
+                                          "SW" = "1", "NE" = "2",  "SE" = "3",
+                                          "North & high Alpine" = "4", "NW" = "5")]
 
 
 mapview::mapview(sf_meta, zcol = "cluster_fct")
@@ -163,18 +163,8 @@ gg_sil <- dat_plot_sil %>%
   
 
 ggsave(gg_sil,
-       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/Figure B4.png",
+       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/sensitivity-gapfill/Figure B4.png",
        width = 8, height = 4)
-
-
-# numbers -----------------------------------------------------------------
-
-dat_meta_cluster[, .(min = min(Elevation), 
-                     max = max(Elevation),
-                     mean = mean(Elevation),
-                     median = median(Elevation)),
-                 cluster_fct]
-
 
 # EOF ---------------------------------------------------------------------
 

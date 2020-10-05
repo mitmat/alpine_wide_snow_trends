@@ -80,39 +80,39 @@ stns_to_check <- dat_metrics_djf2[in_sd == F | r2 < 0.5 | in_ab_mae == F | is.na
 
 # bias
 gg1 <- dat_metrics_djf2 %>% 
-  ggplot(aes(Elevation, bias, colour = in_sd))+
+  ggplot(aes(bias, Elevation, colour = in_sd))+
   geom_point(na.rm = T, size = 0.7)+
   scale_color_grey()+
   # scale_color_manual(values = c("black", "grey70"))+
   theme_bw()+
   theme(legend.position = "blank")+
-  xlab("Elevation [m]")+
-  ylab("Bias [cm]")
+  ylab("Elevation [m]")+
+  xlab("Bias [cm]")
 
 
 # mae 
 gg2 <- 
-dat_metrics_djf2 %>% 
-  ggplot(aes(Elevation, mae, colour = in_ab_mae))+
+  dat_metrics_djf2 %>% 
+  ggplot(aes(mae, Elevation, colour = in_ab_mae))+
   geom_point(na.rm = T, size = 0.7)+
   # geom_abline(slope = 13/1000, intercept = 0)+
   scale_color_grey()+
   theme_bw()+
   theme(legend.position = "blank")+
-  xlab("Elevation [m]")+
-  ylab("MAE [cm]")
+  ylab("Elevation [m]")+
+  xlab("MAE [cm]")
 
 
 # r2
 gg3 <- 
   dat_metrics_djf2 %>% 
-  ggplot(aes(Elevation, r2, colour = r2 > 0.5))+
+  ggplot(aes(r2, Elevation, colour = r2 > 0.5))+
   geom_point(na.rm = T, size = 0.7)+
   scale_color_grey()+
   theme_bw()+
   theme(legend.position = "blank")+
-  xlab("Elevation [m]")+
-  ylab("R squared")
+  ylab("Elevation [m]")+
+  xlab("R squared")
 
 
 gg_all <- wrap_plots(gg1, gg2, gg3)+
@@ -120,7 +120,7 @@ gg_all <- wrap_plots(gg1, gg2, gg3)+
 
 
 ggsave(gg_all,
-       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/appendix-03-spatcons.png",
+       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/Figure A3.png",
        width = 12, height = 4)
 
 

@@ -67,15 +67,15 @@ dat_all[HS < 0, HS := NA]
 
 # maximum daily HN --------------------------------------------------------
 
-dat_all[HN > 200]
-
-dat_all[Name == "Meteomont_Loc_Planpincieux"] %>% 
-  .[Date >= "2007-01-10" & Date <= "2007-02-01"]
-
-dat_all[Name == "Schwagalp_CH_METEOSWISS"] %>% 
-  .[Date >= "2012-02-01" & Date <= "2012-03-01"]
-
-dat_all[HN > 200, HN := NA]
+# dat_all[HN > 200]
+# 
+# dat_all[Name == "Meteomont_Loc_Planpincieux"] %>% 
+#   .[Date >= "2007-01-10" & Date <= "2007-02-01"]
+# 
+# dat_all[Name == "Schwagalp_CH_METEOSWISS"] %>% 
+#   .[Date >= "2012-02-01" & Date <= "2012-03-01"]
+# 
+# dat_all[HN > 200, HN := NA]
 
 # temporal consistency ----------------------------------------------------
 

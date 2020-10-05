@@ -157,7 +157,7 @@ dat_tbl %>%
 
 read_docx() %>% 
   body_add_flextable(ft) %>% 
-  print(target = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/table/cv-gapfill-overview.docx")
+  print(target = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/table/Table A1.docx")
 
 
 # plot --------------------------------------------------------------------
@@ -211,5 +211,12 @@ gg_all <- wrap_plots(gg1, gg2a, gg2b, gg3, ncol = 1)+
   plot_annotation(tag_levels = "a", tag_suffix = ")", tag_prefix = "(")
 
 ggsave(gg_all,
-       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/appendix-02-cv-results.png", 
+       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/Figure A2.png", 
        width = 8, height = 10)
+
+
+# some numbers ------------------------------------------------------------
+
+
+dat_all[n_rep > 50 & length_na == "cvm"] %>% summary
+

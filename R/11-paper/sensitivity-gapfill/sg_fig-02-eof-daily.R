@@ -16,8 +16,8 @@ library(directlabels)
 # prep data ---------------------------------------------------------------
 
 
-load("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/regions-01-sinkr-eof.rda")
-dat_meta <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/meta-with-cluster-01.rds")
+load("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/sensitivity-gapfill/regions-01-sinkr-eof.rda")
+dat_meta <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/sensitivity-gapfill/meta-with-cluster-01.rds")
 
 data.table(Name = colnames(mat_eof), sinkr_eof$u) %>% 
   merge(dat_meta, by = "Name") -> dat_sinkr_eof
@@ -52,7 +52,7 @@ gg_eof <- dat_sinkr_plot %>%
 gg_eof2 <- reposition_legend(gg_eof, "center", panel = "panel-3-2")
 
 ggsave(gg_eof2,
-       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/Figure 3.png",
+       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/sensitivity-gapfill/Figure 3.png",
        width = 8, height = 4)
 
 
@@ -82,7 +82,7 @@ gg_pc_elev <- dat_sinkr_plot %>%
 gg_pc_elev2 <- reposition_legend(gg_pc_elev, "center", panel = "panel-3-2")
 
 ggsave(gg_pc_elev2,
-       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/Figure B1.png",
+       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/sensitivity-gapfill/Figure B1.png",
        width = 6, height = 4)
 
 # 
@@ -98,8 +98,8 @@ ggsave(gg_pc_elev2,
 # appendix PCA full ----------------------------------------------------------------
 
 
-load("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/regions-02-pca-full.rda")
-dat_meta <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/meta-with-cluster-02-pca-full.rds")
+load("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/sensitivity-gapfill/regions-02-pca-full.rda")
+dat_meta <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/sensitivity-gapfill/meta-with-cluster-02-pca-full.rds")
 
 data.table(Name = colnames(mat_eof_sub), pca_prcomp$rotation) %>% 
   merge(dat_meta, by = "Name") -> dat_pca_prcomp
@@ -134,7 +134,7 @@ gg_pca <- dat_pca_plot %>%
 gg_pca2 <- reposition_legend(gg_pca, "center", panel = "panel-3-2")
 
 ggsave(gg_pca2,
-       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/Figure B2.png",
+       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/sensitivity-gapfill/Figure B2.png",
        width = 8, height = 4)
 
 

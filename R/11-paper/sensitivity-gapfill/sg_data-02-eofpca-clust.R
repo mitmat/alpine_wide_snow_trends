@@ -33,7 +33,7 @@ summary_prcomp <- function(xx_pca, k = 10){
 
 
 dat_meta <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/03_QC1/rds/1961-2020/meta_long_HN_HS.rds")
-dat_hs <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/04_GAPFILL/rds/gapfill-01-all.rds")
+dat_hs <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/03_QC1/rds/1961-2020/data_long_HN_HS.rds")
 
 # subset to spatcons
 stns_ok <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/spatcons_stns_ok.rds")
@@ -73,7 +73,7 @@ sinkr_eof <- eof(mat_eof, centered = T, scaled = T, nu = 20, recursive = T)
 sinkr_eof_summary <- summary_sinkr_eof(sinkr_eof)
 
 save(mat_eof, sinkr_eof, sinkr_eof_summary,
-     file = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/regions-01-sinkr-eof.rda")
+     file = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/sensitivity-gapfill/regions-01-sinkr-eof.rda")
 
 # kmeans on eof ---------------------------------------------------------
 
@@ -87,16 +87,16 @@ data.table(cluster = stn_clust, Name = names(stn_clust)) %>%
   merge(dat_meta, by = "Name") -> dat_plot_cluster
 
 dat_plot_cluster[, cluster_fct := fct_recode(factor(cluster),
-                                             "NW" = "1", "NE" = "2",  "SW" = "3",
-                                             "SE" = "4", "North & high Alpine" = "5")]
+                                             "SW" = "1", "NE" = "2",  "SE" = "3",
+                                             "North & high Alpine" = "4", "NW" = "5")]
 dat_plot_cluster[, cluster_fct := fct_relevel(cluster_fct, "NW", "NE", "North & high Alpine", "SW", "SE")]
 
 
 saveRDS(dat_plot_cluster, 
-        "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/meta-with-cluster-01.rds")
+        "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/sensitivity-gapfill/meta-with-cluster-01.rds")
 
 saveRDS(km_fit, 
-        "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/regions-03-km-obj.rds")
+        "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/sensitivity-gapfill/regions-03-km-obj.rds")
 
 
 
@@ -110,7 +110,7 @@ pca_prcomp_summary <- summary_prcomp(pca_prcomp)
 
 
 save(mat_eof_sub, pca_prcomp, pca_prcomp_summary,
-     file = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/regions-02-pca-full.rda")
+     file = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/sensitivity-gapfill/regions-02-pca-full.rda")
 
 
 # kmeans on prcomp ---------------------------------------------------------
@@ -125,13 +125,13 @@ data.table(cluster = stn_clust, Name = names(stn_clust)) %>%
   merge(dat_meta, by = "Name") -> dat_plot_cluster
 
 dat_plot_cluster[, cluster_fct := fct_recode(factor(cluster),
-                                             "SW" = "1", "NE" = "2",  "SE" = "3",
-                                             "NW" = "4", "North & high Alpine" = "5")]
+                                             "North & high Alpine" = "1", "SW" = "2",  "SE" = "3",
+                                             "NW" = "4", "NE" = "5")]
 dat_plot_cluster[, cluster_fct := fct_relevel(cluster_fct, "NW", "NE", "North & high Alpine", "SW", "SE")]
 
 
 saveRDS(dat_plot_cluster, 
-        "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/meta-with-cluster-02-pca-full.rds")
+        "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/sensitivity-gapfill/meta-with-cluster-02-pca-full.rds")
 
 
 

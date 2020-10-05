@@ -402,6 +402,204 @@ rbind(
   geom_line()
 
 
+# aux grid data test ------------------------------------------------------
+
+# summary
+# chelsa: raster
+# grib: cdo (to nc + monmean/sum + sellatlon) : eurocordexr
+# laprec: raster (since laea)
+# eobs: cdo monmean + sellatlon : eurocordexr
+# uerra/mescan: ??
+
+
+
+
+rr0 <- raster("/mnt/CEPH_PROJECTS/CLIRSNOW/uerra/total_precipitation/mescan_tp_1961.grib")
+rr0
+
+st_bbox(bbox(matrix(c(3,18,42,50), nrow = 2)))
+extent(3,18,42,50) %>% 
+  st_bbox(crs = st_crs(4326)) %>% 
+  st_as_sfc() %>% 
+  st_transform(st_crs(rr0))
+
+
+# check hzb seasonal data with daily --------------------------------------
+
+
+hzb_meta <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/06_SEASONAL/from-non-daily-data/hzb/meta.csv")
+hzb_data <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/06_SEASONAL/from-non-daily-data/hzb/data.csv")
+
+hzb_data %>% summary
+hzb_past_stns <- sort(unique(hzb_data$stn_name_safe))
+dat_all_OctSep[Name %in% hzb_past_stns, .N, Name]
+meta_all[Name %in% hzb_past_stns]
+meta_all[Provider == "AT_HZB"]
+
+# -> many stations in past HZB, which are not in daily data (and vice versa)
+
+hzb_data[stn_name_safe %in% meta_all$Name] %>% summary
+hzb_data[! stn_name_safe %in% meta_all$Name] %>% summary
+# -> contains also data after 1970, try to merge and see if differences?
+
+dat_check_hzb <- merge(
+  dat_all_OctSep[Name %in% meta_all[Provider == "AT_HZB", Name],
+                 .(Name, hydro_year, sum_hn_daily = HN, in_daily = "in_daily")],
+  hzb_data[, .(Name = stn_name_safe, hydro_year, sum_hn_seasonal = sum_hn, in_seasonal = "in_seasonal")],
+  by = c("Name", "hydro_year"), all = T
+)
+
+with(dat_check_hzb, table(in_daily, in_seasonal, useNA = "a"))
+dat_zz <- dat_check_hzb[, .N, .(Name, in_daily, in_seasonal)]
+with(dat_check_hzb, plot(sum_hn_daily, sum_hn_seasonal))
+
+# -> can use both, just merge the data
+
+
+# compare stns subs for eof and gapfill -----------------------------------
+
+dat_hs_gp <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/05_MONTHLY/rds/1961-2020_gapfilled_HS_sub/data_long_HS.rds")
+dat_meta_gp <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/05_MONTHLY/rds/1961-2020_gapfilled_HS_sub/meta_long_HS.rds")
+
+dat_hs_sub2$Name %>% unique %>% sort -> stn_sub_eof
+
+
+dat_meta_gp[Name %in% stn_sub_eof]
+
+
+
+
+# seasonal lm --------------------------------------------------------------
+
+
+# dat_hs2 <- dat_hs[year <= 2019 & month %in% c(12, 1, 2) & !is.na(HS)]
+dat_hs2 <- dat_hs[year >= 1971 & year <= 2019 & month %in% c(12, 1, 2) & !is.na(HS)]
+with(dat_hs2, table(year, month))
+
+dat_hs2[, nn_year := .N, .(Name, month)]
+dat_hs_full <- dat_hs2[nn_year == max(nn_year)]
+
+dat_meta[Name %in% dat_hs_full$Name, .N, Provider]
+
+
+# lm
+
+
+mitmatmisc::add_season_fct(dat_hs)
+
+dat_hs_season <- dat_hs[, .(HS = mean(HS), nn = .N), .(Name, season, hydro_year)]
+dat_hs_season <- dat_hs_season[nn == 3]
+
+dat_hs_season
+with(dat_hs_season[!is.na(HS)], table(hydro_year, season))
+
+
+dat_hs_season2 <- dat_hs_season[hydro_year >= 1981 & hydro_year <= 2017 & !is.na(HS)]
+with(dat_hs_season2, table(hydro_year, season))
+
+dat_hs_season2[, nn_year := .N, .(Name, season)]
+dat_hs_season_full <- dat_hs_season2[nn_year == max(nn_year)]
+
+dat_hs_season_full[, length(unique(Name)), season]
+
+dat_meta[Name %in% dat_hs_season_full$Name, .N, Provider]
+
+
+# some plots clim ---------------------------------------------------------
+
+
+
+
+dat_clim %>% 
+  melt(measure.vars = c("HS", "tmean_lapse", "prec")) %>% 
+  merge(dat_meta_clust, by = "Name") -> dat_plot
+
+# 
+# dat_plot %>% 
+#   ggplot(aes(value, Elevation, color = cluster_fct))+
+#   geom_point()+
+#   # geom_smooth(se = F)+
+#   scale_color_brewer(palette = "Set1")+
+#   theme_bw()+
+#   facet_grid(season ~ variable, scales = "free_x")
+
+
+dat_plot %>%
+  ggplot(aes(Elevation, value, color = cluster_fct))+
+  geom_point()+
+  # geom_smooth(se = F)+
+  scale_color_brewer(palette = "Set1")+
+  theme_bw()+
+  facet_grid(variable ~ season, scales = "free_y")
+
+
+dat_xlim <- dat_plot[, .(max_elev = max(Elevation)), .(cluster_fct)] 
+setorder(dat_xlim, cluster_fct)
+dat_xlim[, max_elev := c(1250, 1250, 3000, 3000, 1250)]
+# 
+# dat_plot[season == "DJF"] %>% 
+#   ggplot(aes(Elevation, value, color = cluster_fct))+
+#   geom_point()+
+#   # geom_smooth(se = F, method = lm)+
+#   scale_color_brewer(palette = "Set1")+
+#   theme_bw()+
+#   theme(strip.placement = "outside",
+#         legend.position = "none")+
+#   facet_grid(variable ~ cluster_fct, scales = "free", space = "free_x", switch = "y")+
+#   scale_x_continuous(breaks = seq(0, 3000, by = 500), limits = c(0, NA))+
+#   geom_blank(inherit.aes = F, data = dat_xlim, aes(x = max_elev))+
+#   xlab("Elevation [m]")+
+#   ylab(NULL)
+# 
+# ggsave("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/Figure 7.png",
+#        width = 12, height = 6)
+# 
+
+# dat_plot[, cluster_fct2 := fct_collapse(cluster_fct,
+#                                         North = c("low NE", "low NW", "high N"),
+#                                         South = c("SW", "SE"))]
+# 
+# dat_plot[, cluster_fct3 := fct_collapse(cluster_fct,
+#                                         High = c("SW", "high N"),
+#                                         Low = c("low NW", "low NE", "SE"))]
+
+
+
+
+# trend by clim -----------------------------------------------------------
+
+# try scatter of 71-19 trends versus climate
+
+dat_lm <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/rds/trends-03-full_1971-2019-calyear.rds")
+
+
+dat_lm[term == "year0" & !is.na(statistic)] %>% 
+  merge(dat_clim[season == "DJF"], by = "Name") %>% 
+  merge(dat_meta_clust, by = "Name") -> dat_plot_lm
+
+mitmatmisc::add_month_fct(dat_plot_lm, 10)
+
+dat_plot_lm %>% 
+  ggplot(aes(HS, estimate, colour = cluster_fct))+
+  geom_point()+
+  scale_color_brewer(palette = "Set1")+
+  # facet_grid(cluster_fct ~ month_fct)+
+  facet_wrap(~month_fct)+
+  theme_bw()
+
+zz1 <- dat_plot_lm[month == 3 & cluster_fct == "SW" & HS > 75]
+setorder(zz1, estimate)
+zz1
+
+dat_plot_lm %>% 
+  ggplot(aes(prec, estimate, colour = cluster_fct))+
+  geom_point()+
+  scale_color_brewer(palette = "Set1")+
+  # facet_grid(cluster_fct ~ month_fct)+
+  facet_wrap(~month_fct)+
+  theme_bw()
+
+
 # EOF ---------------------------------------------------------------------
 
 
