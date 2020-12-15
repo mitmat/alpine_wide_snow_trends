@@ -600,6 +600,28 @@ dat_plot_lm %>%
   theme_bw()
 
 
+
+
+
+
+
+# try to fill spring HS for spring SCD (and maxHS) ------------------------
+
+
+
+stn_not <- dat_check2[hydro_year==2019, Name]
+all_stn <- unique(dat_hs_sub$Name)
+all_stn[! all_stn %in% stn_not]
+
+dat_hs_sub[Name == "Zurndorf"] %>% summary
+
+dat_hs_sub[Name == "Zurndorf", sum(is.na(HS)), .(month(date), hydro_year)] %>% 
+  dcast(hydro_year ~ month)
+
+dat_zz <- dat_hs_sub[Name == "Zurndorf" & hydro_year == 2019]
+
+# -> not needed
+
 # EOF ---------------------------------------------------------------------
 
 
