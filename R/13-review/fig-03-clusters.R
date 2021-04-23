@@ -59,6 +59,10 @@ ggsave(gg_clust,
        filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/fig/Figure 5.png",
        width = 7, height = 4, scale = 1.3)
 
+ggsave(gg_clust,
+       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig-pdf/Figure 5.pdf",
+       width = 7, height = 4, scale = 1.3)
+
 
 
 # pca full ----------------------------------------------------------------
@@ -173,6 +177,10 @@ gg_sil <- dat_plot_sil %>%
 
 ggsave(gg_sil,
        filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/fig/Figure B1.png",
+       width = 8, height = 4)
+
+ggsave(gg_sil,
+       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig-pdf/Figure B1.pdf",
        width = 8, height = 4)
 
 

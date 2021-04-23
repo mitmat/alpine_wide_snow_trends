@@ -55,6 +55,9 @@ ggsave(gg_eof2,
        filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/fig/Figure 3.png",
        width = 8, height = 4)
 
+ggsave(gg_eof2,
+       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig-pdf/Figure 3.pdf",
+       width = 8, height = 4)
 
 
 # pc by elev and region ---------------------------------------------------------------
@@ -84,6 +87,11 @@ gg_pc_elev2 <- reposition_legend(gg_pc_elev, "center", panel = "panel-3-2")
 ggsave(gg_pc_elev2,
        filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/fig/Figure 4.png",
        width = 6, height = 4)
+
+ggsave(gg_pc_elev2,
+       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig-pdf/Figure 4.pdf",
+       width = 6, height = 4)
+
 
 # 
 # dat_pca_prcomp_plot[variable %in% c("PC1", "PC2")] %>% 

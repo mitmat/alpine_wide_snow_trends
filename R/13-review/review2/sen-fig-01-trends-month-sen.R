@@ -20,45 +20,18 @@ pval_sym <- function(pval){
 
 dat_meta_clust <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/meta-with-cluster-01.rds")
 
-load("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/trends-01-1971-2019-ols-gls.rda")
+load("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/trends-02-1971-2019-sen.rda")
 
 
-# check if ols or gls -----------------------------------------------------
 
 
-dat_month_gls[term == "year0"] %>% summary
-dat_month_gls[term == "year0", table(pval_sym(p.value.var))]
-dat_month_gls[term == "year0", table(pval_sym(p.value.var), month)]
-dat_month_gls[term == "year0", table(p.value.var < 0.05, month)] %>% prop.table(2)
-dat_month_gls[term == "year0", table(p.value.var < 0.05)] %>% prop.table()
-
-dat_seasonal_gls[term == "year0", table(pval_sym(p.value.var))]
-dat_seasonal_gls[term == "year0", table(pval_sym(p.value.var), variable)]
-dat_seasonal_gls[term == "year0", table(p.value.var < 0.05, variable)] %>% prop.table(2)
-dat_seasonal_gls[term == "year0", 
-                 table(pval = p.value.var < 0.05, scd_yn = startsWith(variable, "SCD"))] %>% prop.table(2)
-
-dat_comp_seas_ols_gls <- merge(
-  dat_seasonal_gls[term == "year0", 
-                   .(Name, variable, est_gls = estimate, pval_gls = p.value)],
-  dat_seasonal_ols[term == "year0", 
-                   .(Name, variable, est_ols = estimate, pval_ols = p.value)]
-)
-  
-dat_comp_seas_ols_gls %>% with(table(ols = pval_ols < 0.05, gls = pval_gls < 0.05, variable))
-dat_comp_seas_ols_gls %>% 
-  ggplot(aes(est_ols, est_gls))+
-  geom_point()+
-  geom_abline()+
-  facet_wrap(~variable, scales = "free")
-
-# GLS plot ------------------------------------------------------
+# plot ------------------------------------------------------
 
 
-dat_plot_full <- dat_month_gls[term == "year0"] %>% 
+dat_plot_full <- dat_month_sen %>% 
   merge(dat_meta_clust, by = "Name")
-dat_plot_full[, est_low := estimate - 1.96 * std.error]
-dat_plot_full[, est_high := estimate + 1.96 * std.error]
+# dat_plot_full[, est_low := conf.low]
+# dat_plot_full[, est_high := conf.high]
 mitmatmisc::add_month_fct(dat_plot_full, 10)
 
 dat_plot_full
@@ -70,8 +43,9 @@ setorder(dat_ylim, cluster_fct)
 dat_ylim[, max_elev := c(1250, 1250, 3000, 3000, 1250)]
 
 
-gg <- dat_plot_full %>% 
-  ggplot(aes(estimate*10, Elevation, xmin = est_low*10, xmax = est_high*10, colour = cluster_fct))+
+gg <-
+dat_plot_full %>% 
+  ggplot(aes(estimate*10, Elevation, xmin = conf.low*10, xmax = conf.high*10, colour = cluster_fct))+
   geom_vline(xintercept = 0)+
   geom_pointrange(size = 0.1, fatten = 0.5)+
   # geom_jitter(width = 0, height = 0.3)+
@@ -88,16 +62,10 @@ gg <- dat_plot_full %>%
 
 
 ggsave(gg,
-       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/fig/Figure 7.png",
+       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/03_review2/fig/Figure 5.png",
        width = 10,
        height = 11)
 
-
-
-ggsave(gg,
-       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig-pdf/Figure 7.png",
-       width = 10,
-       height = 11)
 
 
 
@@ -173,7 +141,7 @@ ft <- dat_table_out3 %>%
 
 read_docx() %>% 
   body_add_flextable(ft) %>% 
-  print(target = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/table/supplement/trends-gls-month-500m.docx")
+  print(target = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/03_review2/table/trends-sen-month-500m.docx")
 
 
 
@@ -251,7 +219,7 @@ ft <- dat_table_out3 %>%
 
 read_docx() %>% 
   body_add_flextable(ft) %>% 
-  print(target = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/table/Table 2.docx")
+  print(target = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/03_review2/table/Table 2.docx")
 
 
 # some numbers ------------------------------------------------------------

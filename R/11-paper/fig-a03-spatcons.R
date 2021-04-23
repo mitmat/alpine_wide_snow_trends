@@ -120,9 +120,12 @@ gg_all <- wrap_plots(gg1, gg2, gg3)+
 
 
 ggsave(gg_all,
-       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/Figure A3.png",
+       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/01_submission/fig/Figure A4.png",
        width = 12, height = 4)
 
+ggsave(gg_all,
+       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig-pdf/Figure A4.pdf",
+       width = 12, height = 4)
 
 # values ------------------------------------------------------------------
 

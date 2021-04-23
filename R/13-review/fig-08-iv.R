@@ -104,9 +104,13 @@ gg_out <- (gg1 / gg2 / gg3) +
 
 
 ggsave(gg_out,
-       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/fig/Figure B2.png",
+       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/fig/Figure B3.png",
        width = 10, height = 10)
 
+
+ggsave(gg_out,
+       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig-pdf/Figure B3.pdf",
+       width = 10, height = 10)
 
 # gamma (month) -------------------------------------------------------------------
 

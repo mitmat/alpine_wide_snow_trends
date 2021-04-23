@@ -78,9 +78,11 @@ dat_plot_m[xx <= 400 & yy <= 1000] %>%
   xlab("Horizontal distance [km]")+
   ylab("Vertical distance [m]")
 
-ggsave(filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig/Figure A1.png",
+ggsave(filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/01_submission/fig/Figure A1.png",
        width = 8, height = 4)
 
+ggsave(filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig-pdf/Figure A1.pdf",
+       width = 8, height = 4)
 
 # n by bin (only for me) --------------------------------------------------
 

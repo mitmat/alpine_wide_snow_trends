@@ -30,7 +30,7 @@ dat_elev_eobs <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/08_AUX_GRIDS/extra
 
 dat_hs_apgd_eobs2 <- merge(dat_hs_apgd_eobs, dat_elev_eobs, by = "Name") %>% 
   merge(dat_meta_clust)
-dat_hs_apgd_eobs2[, tmean_lapse := tmean + (elev_eobs - Elevation) * 6.4 / 1000]
+dat_hs_apgd_eobs2[, tmean_lapse := tmean + (elev_eobs - Elevation) * 6.5 / 1000]
 
 
 dat_elev_uerra <-  readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/08_AUX_GRIDS/extract-stn/uerra-02-elev.rds")
@@ -39,7 +39,7 @@ dat_hs_uerra_full %>%
   merge(dat_meta_clust) %>% 
   merge(dat_elev_uerra) -> dat_hs_uerra_full2
 
-dat_hs_uerra_full2[, tmean_lapse := tmean + (elev_uerra - Elevation) * 6.4 / 1000]
+dat_hs_uerra_full2[, tmean_lapse := tmean + (elev_uerra - Elevation) * 6.5 / 1000]
 
 
 
@@ -139,9 +139,11 @@ gg_out <- gg1_hs + gg2_tmean + gg3_prec +
   plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")")
 
 
-ggsave("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/fig/Figure 8.png",
+ggsave("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/fig/Figure 6.png",
        width = 10, height = 8)
 
+ggsave("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig-pdf/Figure 6.pdf",
+       width = 10, height = 8)
 
 
 # summary clim table ------------------------------------------------------

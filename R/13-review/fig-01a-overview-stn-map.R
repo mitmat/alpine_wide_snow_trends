@@ -36,8 +36,9 @@ dat_meta_hs_all <- unique(rbind(
 dat_meta_hs_reg <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/meta-with-cluster-01.rds")
 
 # trend
-load("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/trends-01-full_1971-2019-calyear.rda")
-dat_meta_hs_trend <- dat_meta_hs_all[Name %in% dat_hs_full_lm$Name]
+load("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/trends-01-1971-2019-ols-gls.rda")
+dat_meta_hs_trend <- dat_meta_hs_all[Name %in% c(dat_month_ols$Name, dat_month_gls$Name,
+                                                 dat_seasonal_gls$Name, dat_seasonal_ols$Name)]
 
 
 # as sf
@@ -71,8 +72,8 @@ sf_histalp2_edit <- sf_histalp2_edit %>% dplyr::filter(id_fct %in% c("SW","NE"))
 
 # cols for used stations (same as for Fig2)
 
-cols <- setNames(scales::brewer_pal(palette = "Dark2")(3),
-                 c("DEM", "used (regionalization)", "used (trend analysis)"))
+cols <- setNames(scales::brewer_pal(palette = "Dark2")(4),
+                 c("DEM", "used (regionalization)", "used (trend analysis)", "available"))
 
 
 
@@ -84,8 +85,8 @@ rr1_stars_alps <- read_stars("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_revie
 gg_dem <-
   ggplot()+
   geom_stars(data = rr1_stars_alps, downsample = 0)+
-  borders()+
-  geom_sf(data = sf_histalp2_edit, fill = NA, colour = "black", linetype = "dashed")+
+  borders(colour = "grey75")+
+  geom_sf(data = sf_histalp2_edit, fill = NA, colour = "black", linetype = "dashed", size = 1)+
   scale_fill_scico("m.a.s.l.", palette = "oleron", rescaler = scales::rescale_mid, na.value = NA)+
   scale_x_continuous(labels = function(x) paste0(x, "° E"))+
   scale_y_continuous(labels = function(x) paste0(x, "° N"))+
@@ -107,10 +108,10 @@ dat_meta_hs_all %>%
   geom_bin2d(binwidth = c(0.5, 0.25))+
   borders()+
   geom_sf(data = sf_histalp2_edit, inherit.aes = F,
-          fill = NA, colour = "black", linetype = "dashed")+
-  geom_point(aes(shape = "available"), size = 0.2)+
-  scale_shape_manual("", values = 19)+
-  scale_fill_continuous("#", low = grey(0.9), high = grey(0.4))+
+          fill = NA, colour = "black", linetype = "dashed", size = 1)+
+  geom_point(aes(colour = "available"), size = 0.2)+
+  scale_colour_manual("", values = cols, guide = F)+
+  scale_fill_continuous("#", low = alpha(cols[4], 0.1), high = alpha(cols[4], 0.6))+
   xlab(NULL)+ylab(NULL)+
   scale_x_continuous(labels = function(x) paste0(x, "° E"))+
   scale_y_continuous(labels = function(x) paste0(x, "° N"))+
@@ -129,9 +130,9 @@ gg_map2 <-
   geom_bin2d(binwidth = c(0.5, 0.25))+
   borders()+
   geom_sf(data = sf_histalp2_edit, inherit.aes = F,
-          fill = NA, colour = "black", linetype = "dashed")+
+          fill = NA, colour = "black", linetype = "dashed", size = 1)+
   geom_point(aes(colour = "used (regionalization)"), size = 0.2)+
-  scale_colour_manual("", values = cols)+
+  scale_colour_manual("", values = cols, guide = F)+
   scale_fill_continuous("#", low = alpha(cols[2], 0.1), high = alpha(cols[2], 0.6))+
   xlab(NULL)+ylab(NULL)+
   scale_x_continuous(labels = function(x) paste0(x, "° E"))+
@@ -150,9 +151,9 @@ gg_map3 <-
     geom_bin2d(binwidth = c(0.5, 0.25))+
   borders()+
   geom_sf(data = sf_histalp2_edit, inherit.aes = F,
-          fill = NA, colour = "black", linetype = "dashed")+
+          fill = NA, colour = "black", linetype = "dashed", size = 1)+
   geom_point(aes(colour = "used (trend analysis)"), size = 0.2)+
-  scale_colour_manual("", values = cols)+
+  scale_colour_manual("", values = cols, guide = F)+
   scale_fill_continuous("#", low = alpha(cols[3], 0.1), high = alpha(cols[3], 0.6))+
   xlab(NULL)+ylab(NULL)+
   scale_x_continuous(labels = function(x) paste0(x, "° E"))+
@@ -179,4 +180,7 @@ ggsave(gg_out_1,
        file = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/fig/Figure 1.png",
        width = 15, height = 10)
 
+ggsave(gg_out_1,
+       file = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig-pdf/Figure 1.pdf",
+       width = 15, height = 10)
 

@@ -622,6 +622,380 @@ dat_zz <- dat_hs_sub[Name == "Zurndorf" & hydro_year == 2019]
 
 # -> not needed
 
+
+# calc monthly and seasonal means based on EOF results --------------------
+
+
+
+library(data.table)
+library(magrittr)
+library(lubridate)
+library(ggplot2)
+library(forcats)
+library(foreach)
+
+
+
+load("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/NIMBUS/rds/regions-01-sinkr-eof.rda")
+n_pc <- 20
+
+sinkr_eof %>% str
+
+mat_eof %>% str
+mat_test <- sinkr_eof$A[, 1:n_pc] %*% t(sinkr_eof$u[, 1:n_pc])
+mat_test2 <- scale(mat_test, F, 1/sinkr_eof$F1_scale)
+mat_test2 <- scale(mat_test2, -1 * sinkr_eof$F1_center, F)
+
+# summary(as.vector(mat_eof - mat_test2))
+# qplot(as.vector(mat_eof - mat_test2))
+
+i_sample <- sample(length(mat_eof), 1e4)
+i_sample_na <- !is.na(mat_eof[i_sample])
+plot(mat_eof[i_sample][i_sample_na], mat_test2[i_sample][i_sample_na])
+
+# -> ok!
+
+sinkr_eof_summary
+summary_sinkr_eof(sinkr_eof, 20)
+
+mat_test2 %>% str
+
+dat_hs_eof <- as.data.table(mat_test2)
+setnames(dat_hs_eof, colnames(mat_eof))
+# dat_hs_eof[, date := ]
+
+
+dat_hs_out[abs(HS - HS_eof) > 300]
+
+dat_hs_out[abs(HS - HS_eof) > 100, .N, Name] -> dat_zz
+
+
+
+# compare eof monthly to "normal" agg
+min_frac_avail <- 0.9
+dat_month_clim <- dat_hs_out[, .(HS = mean(HS, na.rm = T),
+                                 nn_HS = sum(!is.na(HS)),
+                                 HS_eof = mean(HS_eof, na.rm = T),
+                                 nn_HS_eof = sum(!is.na(HS_eof)),
+                                 nn_in_month = days_in_month(date[1])),
+                             .(Name, month(date))]
+
+dat_month_clim[nn_HS < min_frac_avail * nn_in_month * 30, HS := NA]
+dat_month_clim[nn_HS_eof < min_frac_avail * nn_in_month * 30, HS_eof := NA]
+
+
+dat_month_clim %>% summary
+dat_month_clim %>% 
+  ggplot(aes(HS, HS_eof))+
+  geom_abline()+
+  geom_point()+
+  facet_wrap(~month)
+
+dat_month_clim %>% 
+  ggplot(aes(HS, HS_eof - HS))+
+  geom_point()+
+  facet_wrap(~month)
+
+dat_month_clim[HS > 5] %>% 
+  ggplot(aes(HS, (HS_eof - HS)/HS))+
+  geom_point()+
+  facet_wrap(~month)
+
+
+# check clim eof raw ------------------------------------------------------
+
+
+
+dat_hs_eof <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/NIMBUS/rds/data-03-daily-from-eof.rds")
+dat_meta_cluster <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/NIMBUS/rds/meta-with-cluster-01.rds")
+
+# calc clim
+min_frac_avail <- 0.9
+dat_month_clim <- dat_hs_eof[, .(HS = mean(HS, na.rm = T),
+                                 nn_HS = sum(!is.na(HS)),
+                                 HS_eof = mean(HS_eof, na.rm = T),
+                                 nn_HS_eof = sum(!is.na(HS_eof)),
+                                 nn_in_month = days_in_month(date[1])),
+                             .(Name, month(date))]
+
+dat_month_clim[nn_HS < min_frac_avail * nn_in_month * 30, HS := NA]
+dat_month_clim[nn_HS_eof < min_frac_avail * nn_in_month * 30, HS_eof := NA]
+
+
+dat_plot <- dat_month_clim %>% 
+  merge(dat_meta_cluster, by = "Name")
+
+mitmatmisc::add_month_fct(dat_plot, 10)
+
+dat_plot[!is.na(HS)] %>% 
+  ggplot(aes(Longitude, Latitude, colour = HS))+
+  borders()+
+  geom_point()+
+  facet_wrap(~month_fct)+
+  # scale_color_scico(palette = "batlow", direction = -1)+
+  scale_color_viridis_c(direction = -1)+
+  xlab(NULL)+ylab(NULL)+
+  scale_x_continuous(labels = function(x) paste0(x, "° E"))+
+  scale_y_continuous(labels = function(x) paste0(x, "° N"))+
+  coord_quickmap(xlim = range(dat_meta_cluster$Longitude), ylim = range(dat_meta_cluster$Latitude))+
+  theme_bw()
+
+
+dat_plot %>% 
+  ggplot(aes(Longitude, Latitude, colour = HS_eof))+
+  borders()+
+  geom_point()+
+  facet_wrap(~month_fct)+
+  # scale_color_scico(palette = "batlow", direction = -1)+
+  scale_color_viridis_c(direction = -1)+
+  xlab(NULL)+ylab(NULL)+
+  scale_x_continuous(labels = function(x) paste0(x, "° E"))+
+  scale_y_continuous(labels = function(x) paste0(x, "° N"))+
+  coord_quickmap(xlim = range(dat_meta_cluster$Longitude), ylim = range(dat_meta_cluster$Latitude))+
+  theme_bw()
+
+
+
+# clim of uerra t2m and prec ----------------------------------------------
+
+
+
+
+library(raster)
+library(stars)
+
+rs_modis <- read_stars("/mnt/CEPH_PROJECTS/SNOW_3rd_gen/CLOUDREMOVAL/v1.1/annual_SCD/2000-02-24_2000-09-30.tif")
+
+files_t2m <- paste0("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/08_AUX_GRIDS/monthly/UERRA_t2m/mescan_t2m_",
+                    1981:2010, ".nc")
+rs_t2m1 <- read_stars(files_t2m[1])
+rs_t2m <- read_stars(files_t2m)
+
+rs_modis %>% 
+  st_bbox() %>%
+  st_as_sfc %>% 
+  st_transform(st_crs(rs_t2m)) %>% 
+  st_bbox -> bb_new
+
+rs_t2m_alps <- st_crop(rs_t2m, bb_new)
+
+zz %>% 
+  st_dimensions("time")
+rs_t2m %>% 
+  st_get_dimension_values("time") %>% 
+  month() -> dim_time_month
+
+
+rs_t2m_alps %>% 
+  dplyr::slice(time, which(dim_time_month %in% c(11,12,1:5))) %>% 
+  st_apply(c("x", "y", "height"), mean) -> rs_t2m_alps_clim
+
+
+
+ggplot()+
+  geom_stars(data = rs_t2m_alps_clim)
+
+
+
+# check maxHS vs meanHS ---------------------------------------------------
+
+load("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/trends-01-1971-2019-ols-gls.rda")
+
+
+dat_seasonal_gls[term == "year0"] %>% 
+  dcast(Name ~ variable, value.var = "estimate") %>% 
+  ggplot(aes(meanHS_NDJFMAM - maxHS_NDJFMAM))+
+  geom_histogram()
+
+
+dat_seasonal_gls[term == "year0"] %>% 
+  dcast(Name ~ variable, value.var = "estimate") %>% 
+  ggplot(aes(meanHS_NDJFMAM,maxHS_NDJFMAM))+
+  geom_abline()+
+  geom_point()
+
+
+# percent
+dat_seasonal_gls %>% 
+  dcast(Name + variable ~ term, value.var = "estimate") %>% 
+  .[, year0_perc := 100*year0/`(Intercept)`] %>% 
+  dcast(Name ~ variable, value.var = "year0_perc") %>% 
+  ggplot(aes(meanHS_NDJFMAM,maxHS_NDJFMAM))+
+  geom_abline()+
+  geom_point()
+
+
+# anomaly pan-regional ----------------------------------------------------
+
+
+dat_plot_ts[, elev_fct2 := fct_rev(elev_fct)]
+dat_plot_ts[, variable_fct := fct_relevel(factor(variable), "maxHS_NDJFMAM", after = Inf)]
+dat_plot_ts_mean <- dat_plot_ts[, 
+                                .(mean_value = mean(value),
+                                  mean_value_anomaly = mean(value_anomaly),
+                                  mean_value_anomaly_std = mean(value_anomaly_std),
+                                  nn = .N),
+                                .(year, variable_fct, elev_fct2)]
+
+
+dat_plot_ts  %>% 
+  ggplot(aes(year, value_anomaly_std, colour = cluster_fct))+
+  geom_hline(yintercept = 0, linetype = "dashed", colour = "grey30")+
+  geom_line(size = 0.5, alpha = 0.2, aes(group = Name))+
+  geom_line(data = dat_plot_ts_mean, inherit.aes = F,
+            aes(year, mean_value_anomaly_std))+
+  scale_color_brewer("", palette = "Set1")+
+  scale_x_continuous(labels = c("'70", "'80", "'90", "2000", "'10", "'20"))+
+  scale_y_continuous(breaks = seq(-10, 10, by = 2))+
+  facet_grid(elev_fct2 ~ variable_fct, scales = "free_y", space = "free_y")+
+  theme_bw()+
+  theme(panel.spacing.x = unit(9, "pt"),
+        legend.position = "bottom",
+        panel.grid.minor = element_blank())+
+  xlab(NULL)+
+  ylab("Standardized HS anomaly")
+
+
+
+# compare klein et al 2016 to here ----------------------------------------
+
+dat_meta <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/meta-with-cluster-01.rds")
+
+dat_meta[grep("Air", Name)]
+dat_meta[grep("Scuo", Name)]
+dat_meta[grep("Maria", Name)]
+dat_meta[grep("Andermat", Name)]
+dat_meta[grep("Guri", Name)]
+dat_meta[grep("Grac", Name)]
+dat_meta[grep("Davos", Name)]
+dat_meta[grep("Aros", Name)]
+dat_meta[grep("Segl", Name)]
+dat_meta[grep("Grims", Name)]
+dat_meta[grep("Weiss", Name)]
+
+
+stn_klein <- c("Scuol_CH_METEOSWISS", "Sta_Maria_Val_Mustair", "Andermatt_CH_METEOSWISS",
+               "Bosco_Gurin_CH_METEOSWISS", "Grachen", "Davos", "Arosa_CH_METEOSWISS",
+               "Segl_Maria", "Grimsel_Hospiz_CH_METEOSWISS", "Weissfluhjoch_CH_METEOSWISS")
+
+
+load("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/trends-01-1971-2019-ols-gls.rda")
+load("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/trends-02-1971-2019-sen.rda")
+
+dat1 <- dat_seasonal_gls[Name %in% stn_klein & term == "year0" & variable == "SCD_NDJFMAM",
+                 .(Name = factor(Name, levels = stn_klein), variable, estimate*10)]
+setorder(dat1, Name)
+dat1
+
+dat1 <- dat_seasonal_gls[Name %in% stn_klein & term == "year0" & variable == "maxHS_NDJFMAM",
+                         .(Name = factor(Name, levels = stn_klein), variable, estimate*10)]
+setorder(dat1, Name)
+dat1
+
+dat1 <- dat_seasonal_sen[Name %in% stn_klein & variable == "maxHS_NDJFMAM",
+                         .(Name = factor(Name, levels = stn_klein), variable, estimate*10)]
+setorder(dat1, Name)
+dat1
+
+dat1 <- dat_seasonal_sen[Name %in% stn_klein & variable == "SCD_NDJFMAM",
+                         .(Name = factor(Name, levels = stn_klein), variable, estimate*10)]
+setorder(dat1, Name)
+dat1
+
+
+
+dat_ts_seas <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/data-02-seasonal.rds")
+dat_ts_seas[Name %in% stn_klein & variable %in% c("SCD_NDJFMAM", "maxHS_NDJFMAM") & year <= 2015,
+            broom::tidy(lm(value ~ year)), 
+            .(Name, variable)] -> dat_trend_2015
+
+dat2 <- dat_trend_2015[term == "year" & variable == "SCD_NDJFMAM",
+                       .(Name = factor(Name, levels = stn_klein), variable, estimate*10)]
+setorder(dat2, Name)
+dat2
+
+dat2 <- dat_trend_2015[term == "year" & variable == "maxHS_NDJFMAM",
+                       .(Name = factor(Name, levels = stn_klein), variable, estimate*10)]
+setorder(dat2, Name)
+dat2
+
+# sen
+dat_ts_seas[Name %in% stn_klein & variable %in% c("SCD_NDJFMAM", "maxHS_NDJFMAM") & year <= 2015,
+            f_sen(.SD), 
+            .(Name, variable)] -> dat_trend_2015
+
+dat2 <- dat_trend_2015[variable == "SCD_NDJFMAM",
+                       .(Name = factor(Name, levels = stn_klein), variable, estimate*10)]
+setorder(dat2, Name)
+dat2
+
+dat2 <- dat_trend_2015[variable == "maxHS_NDJFMAM",
+                       .(Name = factor(Name, levels = stn_klein), variable, estimate*10)]
+setorder(dat2, Name)
+dat2
+
+
+dat_raw <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/06_SEASONAL/indices/maxHS_NDJFMAM.rds")
+dat_raw[Name %in% stn_klein & year >= 1971 & frac_gapfilled > 0]
+
+# Scuol, Andermatt, Davos, Grimsel, Weissfluh
+
+
+dat_raw2 <- dat_raw[Name %in% stn_klein & year >= 1970 & year <= 2015]
+setnames(dat_raw2, "maxHS_NDJFMAM", "value")
+dat_test_sen <- dat_raw2[, f_sen(.SD), .(Name)]
+
+dat2 <- dat_test_sen[, .(Name = factor(Name, levels = stn_klein), estimate*10)]
+setorder(dat2, Name)
+dat2
+
+
+dat_test_ols <- dat_raw2[, broom::tidy(lm(value ~ year)), .(Name)]
+
+dat2 <- dat_test_ols[term == "year", .(Name = factor(Name, levels = stn_klein), estimate*10)]
+setorder(dat2, Name)
+dat2
+
+
+
+
+# numbers for interview ---------------------------------------------------
+dat_plot_ts_mean[, year0 := year - min(year)]
+dat_plot_ts_mean[nn > 5 & 
+                   cluster_fct %in% c("South & high Alpine") & 
+                   variable %in% c("maxHS_NDJFMAM", "meanHS_NDJFMAM"),
+                 tidy(lm(mean_value ~ year0)),
+                 .(variable, elev_fct)] %>% 
+  dcast(variable + elev_fct ~ term, value.var = "estimate") -> dat_table_hs
+setnames(dat_table_hs, c("variable", "elevation", "year1971", "trend"))
+
+dat_table_hs[, year2019 := year1971 + 49*trend]
+         
+dat_plot_ts_mean[, year0 := year - min(year)]
+dat_plot_ts_mean[nn > 5 & 
+                   cluster_fct %in% c("South & high Alpine") & 
+                   variable %in% c("SCD_NDJFMAM"),
+                 tidy(lm(mean_value ~ year0)),
+                 .(variable, elev_fct)] %>% 
+  dcast(variable + elev_fct ~ term, value.var = "estimate") -> dat_table_scd
+setnames(dat_table_scd, c("variable", "elevation", "year1971", "trend"))
+
+dat_table_scd[, year2019 := year1971 + 49*trend]
+
+
+
+dat_out <- rbind(dat_table_hs, dat_table_scd)
+dat_out[, trend := NULL]
+
+dat_out %>% 
+  flextable() %>% 
+  colformat_int(j = c("year1971", "year2019")) %>% 
+  autofit() -> ft
+
+read_docx() %>% 
+  body_add_flextable(ft) %>% 
+  print(target = "/mnt/CEPH_PROJECTS/CLIRSNOW/00_exchange/table-jacopo.docx")
+
 # EOF ---------------------------------------------------------------------
 
 

@@ -23,12 +23,9 @@ load("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/trends-01-1971-201
 
 
 
-dat_table <- rbind(
-  dat_seasonal_gls[!startsWith(variable, "SCD") & term == "year0",
-                   .(Name, variable, estimate)],
-  dat_seasonal_ols[startsWith(variable, "SCD") & term == "year0",
-                   .(Name, variable, estimate)]
-) %>% merge(dat_meta_clust, by = "Name")
+dat_table <- dat_seasonal_gls[term == "year0",
+                   .(Name, variable, estimate)] %>% 
+  merge(dat_meta_clust, by = "Name")
 
 
 dat_table[, ns_fct := fct_collapse(cluster_fct,
@@ -79,7 +76,7 @@ dat_out_abs %>%
 
 read_docx() %>% 
   body_add_flextable(ft) %>% 
-  print(target = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/table/Table 3_absolute.docx")
+  print(target = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/03_review2/table/Table 3_absolute.docx")
 
 #
 
@@ -96,12 +93,9 @@ read_docx() %>%
 #     .[, .(Name, variable, estimate = 100 * year0/`(Intercept)`)]
 # ) %>% merge(dat_meta_clust, by = "Name")
 
-dat_table <- rbind(
-  dat_seasonal_gls[!startsWith(variable, "SCD") & term == "year0",
-                   .(Name, variable, estimate = 100 * trend.rel)],
-  dat_seasonal_ols[startsWith(variable, "SCD") & term == "year0",
-                   .(Name, variable, estimate = 100 * trend.rel)]
-) %>% merge(dat_meta_clust, by = "Name")
+dat_table <- dat_seasonal_gls[term == "year0",
+                              .(Name, variable, estimate = 100 * trend.rel)] %>%
+  merge(dat_meta_clust, by = "Name")
 
 dat_table[, ns_fct := fct_collapse(cluster_fct,
                                    "North" = c("NE", "NW", "North & high Alpine"),
@@ -156,7 +150,7 @@ dat_out_rel %>%
 
 read_docx() %>% 
   body_add_flextable(ft) %>% 
-  print(target = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/table/Table 3_relative.docx")
+  print(target = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/03_review2/table/Table 3_relative.docx")
 
 #
 
@@ -177,7 +171,7 @@ dat_seasonal_gls[variable == "meanHS_NDJFMAM" & term == "year0",
 dat_seasonal_gls[variable == "maxHS_NDJFMAM" & term == "year0",
                  mean(trend.rel)*100*10] # decade %
 
-dat_seasonal_ols[variable == "SCD_NDJFMAM" & term == "year0",
+dat_seasonal_gls[variable == "SCD_NDJFMAM" & term == "year0",
                  mean(trend.rel)*100*10] # decade %
 
 

@@ -37,8 +37,8 @@ dat_meta_hs_all <- unique(rbind(
 dat_meta_hs_reg <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/meta-with-cluster-01.rds")
 
 # trend
-load("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/trends-01-full_1971-2019-calyear.rda")
-dat_meta_hs_trend <- dat_meta_hs_all[Name %in% dat_hs_full_lm$Name]
+load("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/trends-01-1971-2019-ols-gls.rda")
+dat_meta_hs_trend <- dat_meta_hs_all[Name %in% dat_month_ols$Name]
 
 
 
@@ -190,7 +190,7 @@ gg_in <- ggplot()+
   xlab(NULL)+ylab(NULL)+
   scale_x_continuous(labels = function(x) paste0(x, "° E"))+
   scale_y_continuous(labels = function(x) paste0(x, "° N"))+
-  coord_sf(xlim = range(dat_meta_cluster$Longitude), ylim = range(dat_meta_cluster$Latitude))+
+  coord_sf(xlim = range(dat_meta_hs_all$Longitude), ylim = range(dat_meta_hs_all$Latitude))+
   # theme_bw()
   theme_void()+
   theme(plot.background = element_rect(fill = "white"))
@@ -251,11 +251,13 @@ ggsave(gg_out,
        file = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/fig/Figure 2.png",
        width = 10, height = 8)
 
-
+ggsave(gg_out,
+       file = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig-pdf/Figure 2.pdf",
+       width = 10, height = 8)
 
 # numbers and other -----------------------------------------------------------------
 
-dat_ts_hn[year == min(year)]
+# dat_ts_hn[year == min(year)]
 dat_daily_hnhs[year(Date) == 1787]
 
 dat_ts_hs[year == min(year)]

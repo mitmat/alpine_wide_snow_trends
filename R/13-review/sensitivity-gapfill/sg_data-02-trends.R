@@ -13,12 +13,12 @@ library(broom.mixed)
 
 # prep data ---------------------------------------------------------------
 
-dat_month <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/data-01-monthly.rds")
-dat_seasonal <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/data-02-seasonal.rds")
+dat_month <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/sensitivity-gapfill/data-01-monthly.rds")
+# dat_seasonal <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/data-02-seasonal.rds")
 
 # for month calendar year, for seasonal hydro year, but same name
 dat_month[, year0 := year - min(year)]
-dat_seasonal[, year0 := year - min(year)]
+# dat_seasonal[, year0 := year - min(year)]
 
 setnames(dat_month, "HS", "value")
 
@@ -32,15 +32,11 @@ f_ols <- function(dat){
   dat_cf <- tidy(lm1)
   dat_summ <- glance(lm1)
   
-  data.table(dat_cf, 
-             dat_summ[, c("r.squared", "sigma")], 
-             resid.sd = sd(resid(lm1)),
-             trend.rel = coef(lm1)[2] / coef(lm1)[1],
-             trend.rel.se = msm::deltamethod(~ x2 / x1, coef(lm1), vcov(lm1)))
+  data.table(dat_cf, dat_summ[, c("r.squared", "sigma")], resid.sd = sd(resid(lm1)))
 }
 
 dat_month_ols <- dat_month[, f_ols(.SD), .(Name, month)]
-dat_seasonal_ols <- dat_seasonal[, f_ols(.SD), .(Name, variable)]
+# dat_seasonal_ols <- dat_seasonal[, f_ols(.SD), .(Name, variable)]
 
 
 # GLS ---------------------------------------------------------------------
@@ -63,9 +59,7 @@ f_gls <- function(dat){
                dat_summ[, c("sigma")], 
                resid.sd = sd(resid(gls0)),
                cf.var = NA_real_,
-               p.value.var = NA_real_,
-               trend.rel = coef(gls0)[2] / coef(gls0)[1],
-               trend.rel.se = msm::deltamethod(~ x2 / x1, coef(gls0), vcov(gls0)))
+               p.value.var = NA_real_)
     
   } else {
     
@@ -80,9 +74,7 @@ f_gls <- function(dat){
                dat_summ[, c("sigma")], 
                resid.sd = sd(resid(gls1)),
                cf.var = coef(gls1$modelStruct$varStruct),
-               p.value.var = pval_comp,
-               trend.rel = coef(gls1)[2] / coef(gls1)[1],
-               trend.rel.se = msm::deltamethod(~ x2 / x1, coef(gls1), vcov(gls1)))
+               p.value.var = pval_comp)
     
   }
   
@@ -90,7 +82,7 @@ f_gls <- function(dat){
 
 
 dat_month_gls <- dat_month[, f_gls(.SD), .(Name, month)]
-dat_seasonal_gls <- dat_seasonal[, f_gls(.SD), .(Name, variable)]
+# dat_seasonal_gls <- dat_seasonal[, f_gls(.SD), .(Name, variable)]
 
 
 
@@ -98,8 +90,8 @@ dat_seasonal_gls <- dat_seasonal[, f_gls(.SD), .(Name, variable)]
 
 
 
-save(dat_month_ols, dat_month_gls, dat_seasonal_ols, dat_seasonal_gls,
-     file = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/trends-01-1971-2019-ols-gls.rda")
+save(dat_month_ols, dat_month_gls, # dat_seasonal_ols, dat_seasonal_gls,
+     file = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/sensitivity-gapfill/trends-01-1971-2019-ols-gls.rda")
 
 
 

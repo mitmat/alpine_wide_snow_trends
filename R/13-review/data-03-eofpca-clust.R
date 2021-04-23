@@ -61,7 +61,7 @@ dat_hs_sub[!is.na(HS), .N, .(Name)] %>%
 # dat_hs_sub2 <- dat_hs_sub[Name %in% dat_meta_gp$Name]
 
 dat_hs_eof <- dcast(dat_hs_sub2, date ~ Name, value.var = "HS")
-
+mat_eof_dates <- dat_hs_eof$date
 
 dat_hs_eof[, ":="(date = NULL)]
 mat_eof <- as.matrix(dat_hs_eof)
@@ -72,7 +72,7 @@ mat_eof <- as.matrix(dat_hs_eof)
 sinkr_eof <- eof(mat_eof, centered = T, scaled = T, nu = 20, recursive = T)
 sinkr_eof_summary <- summary_sinkr_eof(sinkr_eof)
 
-save(mat_eof, sinkr_eof, sinkr_eof_summary,
+save(mat_eof, mat_eof_dates, sinkr_eof, sinkr_eof_summary,
      file = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/regions-01-sinkr-eof.rda")
 
 # kmeans on eof ---------------------------------------------------------

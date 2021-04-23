@@ -37,7 +37,7 @@ dat_seasonal_gls[term == "year0", table(p.value.var < 0.1, variable)] %>% prop.t
 
 
 
-# mean and max HS ------------------------------------------------------
+# mean and max HS (absolute) ------------------------------------------------------
 
 
 dat_plot_full <- dat_seasonal_gls[term == "year0" & !startsWith(variable, "SCD")] %>% 
@@ -74,6 +74,12 @@ gg <-
 
 ggsave(gg,
        filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/fig/zenodo-SM/trends-seasonalHS-GLS.png",
+       width = 10,
+       height = 11)
+
+
+ggsave(gg,
+       filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/fig-pdf/Figure C1.png",
        width = 10,
        height = 11)
 
@@ -241,12 +247,51 @@ with(dat_table, table(trend_sign)) %>% prop.table()
 with(dat_table, table(trend_sign, p.value < 0.05))
 with(dat_table, table(trend_sign, p.value < 0.05)) %>% prop.table()
 
-dat_table[, 10*mean(estimate), keyby = .(month_fct, elev_fct)]
 
-# dat_table[month %in% c(12, 1, 2), 
-#           .(.N, 10*mean(estimate), 10*min(estimate), 10*max(estimate)), 
-#             keyby = .(elev_fct)]
-# dat_table[month %in% c(3:5), 
-#           .(.N, 10*mean(estimate), 10*min(estimate), 10*max(estimate)), 
-#           keyby = .(elev_fct)]
+# mean and max HS (relative) ------------------------------------------------------
+
+dat_plot_full2 <- dat_seasonal_gls[term == "year0" & !startsWith(variable, "SCD")] %>% 
+  merge(dat_meta_clust, by = "Name")
+dat_plot_full2[, est_low := trend.rel - 1.96 * trend.rel.se]
+dat_plot_full2[, est_high := trend.rel + 1.96 * trend.rel.se]
+dat_plot_full2[, variable_fct := fct_relevel(factor(variable), "maxHS_NDJFMAM", after = Inf)]
+dat_plot_full2
+
+
+# manual limits y (elev)
+dat_ylim <- dat_plot_full2[, .(max_elev = max(Elevation)), .(cluster_fct)] 
+setorder(dat_ylim, cluster_fct)
+dat_ylim[, max_elev := c(1250, 1250, 3000, 3000, 1250)]
+
+# remove high relative
+dat_plot_full2[abs(trend.rel*10) > 1]
+dat_plot_full2_sub <- dat_plot_full2[abs(trend.rel*10) < 1]
+
+
+# gg <-
+  dat_plot_full2_sub %>% 
+  ggplot(aes(trend.rel*10, Elevation, colour = cluster_fct))+
+  geom_vline(xintercept = 0)+
+  geom_point(size = 0.1)+
+  # geom_pointrange(size = 0.1, fatten = 0.5)+
+  # geom_jitter(width = 0, height = 0.3)+
+  # facet_wrap(~month_fct, nrow = 2)+
+  facet_grid(cluster_fct ~ variable_fct, scales = "free", space = "free")+ # free_x or free
+  theme_bw()+
+  theme(panel.grid.minor = element_blank())+
+  scale_color_brewer("", palette = "Set1", guide = F)+
+  # scale_x_continuous(breaks = 10*seq(-4, 4, by = 2))+
+    scale_x_continuous(labels = scales::percent_format())+
+  scale_y_continuous(breaks = seq(0, 3000, by = 500), limits = c(0, NA))+
+  geom_blank(inherit.aes = F, data = dat_ylim, aes(x = 0, y = max_elev))+
+  xlab("Linear trend in seasonal HS indices [% per decade]")+
+  ylab("Elevation [m]")
+
+
+# ggsave(gg,
+#        filename = "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/fig/zenodo-SM/trends-seasonalHS-GLS-relative.png",
+#        width = 10,
+#        height = 11)
+
+
 
