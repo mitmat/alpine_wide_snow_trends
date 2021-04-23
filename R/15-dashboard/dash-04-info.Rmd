@@ -1,0 +1,100 @@
+---
+title: "Alpine wide snow"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: bootstrap
+    self_contained: false
+    orientation: columns
+    vertical_layout: fill
+    source_code: embed
+    social: ["menu"]
+    navbar:
+      - { title: "CliRSnow project page", href: "/", align: right }
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+
+library(data.table)
+library(magrittr)
+library(lubridate)
+library(ggplot2)
+library(scico)
+library(forcats)
+library(plotly)
+library(cluster)
+library(foreach)
+library(sf)
+library(leaflet)
+
+cols_cluster <- setNames(scales::brewer_pal(palette = "Set1")(5),
+                         c("NW", "NE", "North & high Alpine", "South & high Alpine", "SE"))
+```
+
+
+
+More info 
+=========================================
+
+
+Column 1
+-----------------------------------------
+
+### Study
+
+
+#### Paper
+
+These are results from an Alpine collaboration of more than 30 scientists. The study has been published in the scientific journal [The Cryosphere](https://www.the-cryosphere.net/):
+
+
+Matiu, M., Crespi, A., Bertoldi, G., Carmagnola, C. M., Marty, C., Morin, S., Schöner, W., Cat Berro, D., Chiogna, G., De Gregorio, L., Kotlarski, S., Majone, B., Resch, G., Terzago, S., Valt, M., Beozzo, W., Cianfarra, P., Gouttevin, I., Marcolini, G., Notarnicola, C., Petitta, M., Scherrer, S. C., Strasser, U., Winkler, M., Zebisch, M., Cicogna, A., Cremonini, R., Debernardi, A., Faletto, M., Gaddo, M., Giovannini, L., Mercalli, L., Soubeyroux, J.-M., Sušnik, A., Trenti, A., Urbani, S., and Weilguni, V.: Observed snow depth trends in the European Alps 1971 to 2019, The Cryosphere Discuss. [preprint], https://doi.org/10.5194/tc-2020-289, in review, 2020. 
+
+#### Data availability
+
+Much of the data is openly available at a public repository:
+
+https://doi.org/10.5281/zenodo.4064128
+
+
+#### Contact
+
+Michael Matiu, michael.matiu@eurac.edu
+
+Alice Crespi, alice.crespi@eurac.edu 
+
+
+
+#### Funding
+
+*This project has received funding from the European Union’s Horizon 2020 research and innovation programme under the Marie Sklodowska-Curie grantagreement No 795310.*
+
+<figure src="/media/logo.png" title="EU flag">
+<img src="/media/logo.png" width="200" alt="EU flag">
+
+
+
+Column 2
+-----------------------------------------
+
+### Regions
+
+The regions were derived using *only* daily snow depth series from 1981 to 2010 for the months December to April. No information on location or elevation was used. No post-processing of the assignment of the series to regions was performed, so some series in certain locations might be assigned to a region which does not make total sense. The most likely reason for this *mis-assignment* is that the series have a unique climate and snow variability, which cannot be found in the series of the neighbouring region. With more series available, this situation might change.
+
+For assigning the series to regions, a multivariate technique was used, which extracts the major sources of variability in the data (principal components analysis). This was followed by an automatic clustering technique (k-means), using 2 to 5 regions.
+
+
+### Trend analysis
+
+The trends were calculated using linear regression for the period 1971 to 2019. Besides mean monthly snow depth, multiple snow indices were calculated based on the daily snow depth series: mean seasonal snow depth, maximum seasonal snow depth, and snow cover duration (days with snow depth > 1cm). The means and indices were calculated if >90% of the daily observations in the month/season were available. The trends were only computed if the series had data available for all years. For the overview, only the estimated linear trend in cm per decade is shown (or days per decade).
+
+
+
+
+
+
+
+
+
+
+

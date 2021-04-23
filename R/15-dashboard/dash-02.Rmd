@@ -1,0 +1,452 @@
+---
+title: "Alpine wide snow"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: bootstrap
+    self_contained: true
+    orientation: columns
+    vertical_layout: fill
+    social: ["menu"]
+    navbar:
+      - { title: "CliRSnow", href: "/", align: right }
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+
+library(data.table)
+library(magrittr)
+library(lubridate)
+library(ggplot2)
+library(scico)
+library(forcats)
+library(plotly)
+library(cluster)
+library(foreach)
+library(sf)
+library(leaflet)
+
+cols_cluster <- setNames(scales::brewer_pal(palette = "Set1")(5),
+                         c("NW", "NE", "North & high Alpine", "South & high Alpine", "SE"))
+```
+
+
+
+Regions {.storyboard}
+=====================================
+
+```{r regions-data, include=F}
+load("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/regions-01-sinkr-eof.rda")
+dat_meta <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/03_QC1/rds/1961-2020/meta_long_HN_HS.rds")
+dat_meta_clust <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/meta-with-cluster-01.rds")
+mat_clust3_eof <- sinkr_eof$u
+
+dat_regions <- foreach(
+  kk = 2:5,
+  .final = rbindlist
+) %do% {
+
+  km_fit <- kmeans(mat_clust3_eof[, 1:kk], kk)
+  stn_clust <- km_fit$cluster
+  data.table(kk = kk, 
+             i_cluster = stn_clust,
+             Name = colnames(mat_eof))
+  
+}
+
+dat_plot_regions <- dat_regions %>% merge(dat_meta_clust, by = "Name")
+dat_plot_regions[, Region := factor(i_cluster)]
+dat_plot_regions[, label := paste0(
+  Name, ", ", Elevation, "m, ", round(Longitude, 3), "°E ", round(Latitude, 3), "°N"
+)]
+sf_regions <- st_as_sf(dat_plot_regions,
+                       coords = c("Longitude", "Latitude"),
+                       crs = 4326)
+
+
+```
+
+
+
+
+### 2 regions
+
+
+```{r}
+sf_cur <- sf_regions[sf_regions$kk == 2, ]
+leaf_col <- colorFactor("Accent", levels(sf_cur$Region))
+
+sf_cur %>% 
+  leaflet() %>% 
+  addProviderTiles("Esri.WorldTopoMap") %>% 
+  addCircleMarkers(color = ~leaf_col(Region),
+                   stroke = FALSE, 
+                   radius = 5,
+                   fillOpacity = 0.8,
+                   label = ~label) 
+```
+
+***
+
+Divides the whole Alps by elevation into high and low stations, irrespective of north-south or east-west orientation.
+
+--> The main variability in snow is along elevation.
+
+
+
+### 3 regions
+
+
+```{r}
+sf_cur <- sf_regions[sf_regions$kk == 3, ]
+leaf_col <- colorFactor("Dark2", levels(sf_cur$Region))
+
+sf_cur %>% 
+  leaflet() %>% 
+  addProviderTiles("Esri.WorldTopoMap") %>% 
+  addCircleMarkers(color = ~leaf_col(Region),
+                   stroke = FALSE, 
+                   radius = 5,
+                   fillOpacity = 0.8,
+                   label = ~label) 
+```
+
+***
+
+With 3 possible regions, the north-south divide emerges. The north consists of two regions with high and low elevations. The south is the third region. 
+
+--> After elevation, the north-south divide is the strongest factor affecting the snow distribution.
+
+
+
+### 4 regions
+
+
+```{r}
+sf_cur <- sf_regions[sf_regions$kk == 4, ]
+leaf_col <- colorFactor("Set2", levels(sf_cur$Region))
+
+sf_cur %>% 
+  leaflet() %>% 
+  addProviderTiles("Esri.WorldTopoMap") %>% 
+  addCircleMarkers(color = ~leaf_col(Region),
+                   stroke = FALSE, 
+                   radius = 5,
+                   fillOpacity = 0.8,
+                   label = ~label) 
+```
+
+
+***
+
+With 4 possible regions, the south of the Alps is divided into east and west. Because only very few low elevation stations were available in the south-west, this division could be caused by both elevation and east-west gradients. The north still consists of two regions with high and low elevations. 
+
+--> After elevation and the north-south divide, an east-west gradient emerges.
+
+
+
+
+### 5 regions (used in study)
+
+
+```{r}
+sf_cur <- sf_regions[sf_regions$kk == 5, ]
+leaf_col <- colorFactor("Set1", levels = levels(dat_meta_clust$cluster_fct))
+
+sf_cur %>% 
+  leaflet() %>% 
+  addProviderTiles("Esri.WorldTopoMap") %>% 
+  addCircleMarkers(color = ~leaf_col(cluster_fct),
+                   stroke = FALSE, 
+                   radius = 5,
+                   fillOpacity = 0.8,
+                   label = ~label) 
+```
+
+
+***
+
+With 5 possible regions, the snow series in the Alps are divided by elevation, as well as gradients along north-south and east-west directions. These five regions were used in the analysis:
+
+  - North & high Alpine
+  - South & high Alpine
+  - NW 
+  - NE
+  - SE
+
+--> Elevation, the north-south divide, and the east-west gradient are the major drivers of snow variability. 
+
+This results in a consistent picture with the Alpine climate, where snow mirrors the temperature and precipiation patterns in the Alps.
+
+
+
+Trends by season 1971-2019 {.storyboard data-navmenu="Trends"}
+=========================================
+
+```{r trend-data-season, include=FALSE}
+
+dat_meta_clust <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/meta-with-cluster-01.rds")
+load("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/trends-01-1971-2019-ols-gls.rda")
+
+dat_plot_season_hs <- dat_seasonal_gls[term == "year0" & !startsWith(variable, "SCD")] %>% 
+  merge(dat_meta_clust, by = "Name")
+dat_plot_season_hs[, Trend := round(estimate*10, 2)]
+dat_plot_season_hs[, Region := cluster_fct]
+ylim_common <- range(dat_plot_season_hs$Elevation)
+
+dat_plot_season_scd <- dat_seasonal_ols[term == "year0" & startsWith(variable, "SCD")] %>% 
+  merge(dat_meta_clust, by = "Name")
+dat_plot_season_scd[, Trend := round(estimate*10, 2)]
+dat_plot_season_scd[, Region := cluster_fct]
+
+f_plot_season <- function(dat, seas, seas_lab){
+  
+  dat[variable == seas] %>% 
+  ggplot(aes(Trend, Elevation, colour = Region, label = Name))+
+  geom_vline(xintercept = 0)+
+  geom_point()+
+  theme_bw()+
+  theme(panel.grid.minor = element_blank())+
+  scale_color_manual("", values = cols_cluster)+
+  ylim(ylim_common)+
+  xlab(paste0("Linear trend in ", seas_lab, " per decade]"))+
+  ylab("Elevation [m]")
+  
+}
+
+```
+
+### November to May mean snow depth (HS)
+
+```{r}
+ggplotly(f_plot_season(dat_plot_season_hs, 
+                       "meanHS_NDJFMAM", 
+                       "November-May mean HS [cm"),
+         tooltip = c("x", "y", "colour", "label"))
+```
+
+### December to January mean snow depth (HS)
+
+```{r}
+ggplotly(f_plot_season(dat_plot_season_hs, 
+                       "meanHS_DJF",
+                       "December-February mean HS [cm"),
+         tooltip = c("x", "y", "colour", "label"))
+```
+
+### March to May mean snow depth (HS)
+
+```{r}
+ggplotly(f_plot_season(dat_plot_season_hs, 
+                       "meanHS_MAM",
+                       "March-May mean HS [cm"),
+         tooltip = c("x", "y", "colour", "label"))
+```
+
+### November to May maximum snow depth (HS)
+
+```{r}
+ggplotly(f_plot_season(dat_plot_season_hs, 
+                       "maxHS_NDJFMAM", 
+                       "November-May maximum HS [cm"),
+         tooltip = c("x", "y", "colour", "label"))
+```
+
+### November to May snow cover duration (SCD)
+
+```{r}
+ggplotly(f_plot_season(dat_plot_season_scd, 
+                       "SCD_NDJFMAM", 
+                       "November-May SCD [days"),
+         tooltip = c("x", "y", "colour", "label"))
+```
+
+### November to February snow cover duration (SCD)
+
+```{r}
+ggplotly(f_plot_season(dat_plot_season_scd, 
+                       "SCD_NDJF", 
+                       "November-February SCD [days"),
+         tooltip = c("x", "y", "colour", "label"))
+```
+
+### March to May snow cover duration (SCD)
+
+```{r}
+ggplotly(f_plot_season(dat_plot_season_scd, 
+                       "SCD_MAM", 
+                       "March-May SCD [days"),
+         tooltip = c("x", "y", "colour", "label"))
+```
+
+
+
+
+Trends by month 1971-2019 {.storyboard data-navmenu="Trends"}
+=========================================
+
+```{r trend-data-month, include=FALSE}
+
+dat_meta_clust <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/meta-with-cluster-01.rds")
+load("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/trends-01-1971-2019-ols-gls.rda")
+
+dat_plot_month <- dat_month_gls[term == "year0"] %>% 
+  merge(dat_meta_clust, by = "Name")
+dat_plot_month[, est_low := estimate - 1.96 * std.error]
+dat_plot_month[, est_high := estimate + 1.96 * std.error]
+mitmatmisc::add_month_fct(dat_plot_month, 10)
+dat_plot_month[, hilo := fct_collapse(cluster_fct, 
+                                      high = c("South & high Alpine", "North & high Alpine"),
+                                      low = c("NW", "NE", "SE"))]
+dat_plot_month[, Trend := round(estimate*10, 2)]
+dat_plot_month[, Region := cluster_fct]
+ylim_common <- range(dat_plot_month$Elevation)
+
+f_plot_month <- function(dat, mo){
+  
+  dat[month == mo] %>% 
+  ggplot(aes(Trend, Elevation, colour = Region, label = Name))+
+  geom_vline(xintercept = 0)+
+  geom_point()+
+  theme_bw()+
+  theme(panel.grid.minor = element_blank())+
+  scale_color_manual("", values = cols_cluster)+
+  ylim(ylim_common)+
+  xlab(paste0("Linear trend in ", month.name[mo], " mean HS [cm per decade]"))+
+  ylab("Elevation [m]")
+  
+}
+
+```
+
+
+### November
+
+```{r}
+
+ggplotly(f_plot_month(dat_plot_month, 11),
+         tooltip = c("x", "y", "colour", "label"))
+```
+
+### December
+
+```{r}
+
+ggplotly(f_plot_month(dat_plot_month, 12),
+         tooltip = c("x", "y", "colour", "label"))
+```
+
+
+### January
+
+```{r}
+
+ggplotly(f_plot_month(dat_plot_month, 1),
+         tooltip = c("x", "y", "colour", "label"))
+```
+
+
+### February
+
+```{r}
+
+ggplotly(f_plot_month(dat_plot_month, 2),
+         tooltip = c("x", "y", "colour", "label"))
+```
+
+
+### March
+
+```{r}
+
+ggplotly(f_plot_month(dat_plot_month, 3),
+         tooltip = c("x", "y", "colour", "label"))
+```
+
+
+### April
+
+```{r}
+
+ggplotly(f_plot_month(dat_plot_month, 4),
+         tooltip = c("x", "y", "colour", "label"))
+```
+
+
+### May
+
+```{r}
+
+ggplotly(f_plot_month(dat_plot_month, 5),
+         tooltip = c("x", "y", "colour", "label"))
+```
+
+
+
+Station time series
+=====================================
+
+
+```{r stn-ts-data, include=F}
+
+dat_meta_clust <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/meta-with-cluster-01.rds")
+
+stn_trend <- sort(unique(c(dat_month_ols$Name, dat_month_gls$Name,
+                           dat_seasonal_gls$Name, dat_seasonal_ols$Name)))
+dat_meta_clust[, stn_long := ifelse(Name %in% stn_trend, "trend", "region")]
+dat_meta_clust[, leaf_opac := ifelse(Name %in% stn_trend, 0.8, 0.4)]
+dat_meta_clust[, leaf_rad := ifelse(Name %in% stn_trend, 6, 4)]
+
+dat_meta_clust[, popup_html := paste0(
+  Name, "<br>", 
+  Elevation, "m <br>", 
+  round(Longitude, 3), "°E ", round(Latitude, 3), "°N <br>",
+  '<a href="test-png/Aadorf_Tanikon.png">view time series</a>'
+)]
+sf_meta_clust <- st_as_sf(dat_meta_clust,
+                          coords = c("Longitude", "Latitude"),
+                          crs = 4326)
+
+```
+
+```{r}
+
+leaf_col <- colorFactor("Set1", levels = levels(dat_meta_clust$cluster_fct))
+
+sf_meta_clust %>% 
+  leaflet() %>% 
+  addProviderTiles("Esri.WorldTopoMap") %>% 
+  addCircleMarkers(color = ~leaf_col(cluster_fct),
+                   stroke = F, 
+                   radius = ~leaf_rad,
+                   fillOpacity = ~leaf_opac,
+                   popup = ~popup_html)
+```
+
+
+
+About
+=========================================
+
+
+### Regions
+
+The regions were derived using *only* daily snow depth series from 1981 to 2010 for the months December to April. No information on location or elevation was used. No post-processing of the assignment of the series to regions was performed, so some series in certain locations might be assigned to a region which does not make total sense. The most likely reason for this *mis-assignment* is that the series have a unique climate and snow variability, which cannot be found in the series of the neighbouring region. With more series available, this situation might change.
+
+For assigning the series to regions, a multivariate technique was used, which extracts the major sources of variability in the data (a principal components analysis), followed by an automatic clustering technique (k-means).
+
+
+### Trend analysis
+
+The trends were calculated using linear regression for the period 1971 to 2019. Besides mean monthly snow depth, multiple snow indices were calculated based on the daily snow depth series: mean seasonal snow depth, maximum seasonal snow depth, and snow cover duration (days with snow depth > 1cm). The means and indices were calculated if >90% of the daily observations in the month/season were available. The trends were only computed if the series had data available for all years. For the overview, only the estimated linear trend in cm per decade is shown (or days per decade).
+
+
+
+
+
+
+
+
+
+
+

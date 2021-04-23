@@ -1,0 +1,208 @@
+---
+title: "Alpine wide snow"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+
+library(data.table)
+library(magrittr)
+library(lubridate)
+library(ggplot2)
+library(scico)
+library(forcats)
+library(plotly)
+library(cluster)
+library(foreach)
+library(sf)
+library(leaflet)
+```
+
+
+
+Regions {.storyboard}
+=====================================
+
+```{r regions-data, include=F}
+load("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/regions-01-sinkr-eof.rda")
+dat_meta <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/03_QC1/rds/1961-2020/meta_long_HN_HS.rds")
+mat_clust3_eof <- sinkr_eof$u
+
+dat_regions <- foreach(
+  kk = 2:5,
+  .final = rbindlist
+) %do% {
+
+  km_fit <- kmeans(mat_clust3_eof[, 1:kk], kk)
+  stn_clust <- km_fit$cluster
+  data.table(kk = kk, 
+             cluster = stn_clust,
+             Name = colnames(mat_eof))
+  
+}
+
+dat_plot_regions <- dat_regions %>% merge(dat_meta, by = "Name")
+dat_plot_regions[, Region := factor(cluster)]
+dat_plot_regions[, label := paste0(
+  Name, ", ", Elevation, "m, ", round(Longitude, 3), "°E ", round(Latitude, 3), "°N"
+)]
+sf_regions <- st_as_sf(dat_plot_regions,
+                       coords = c("Longitude", "Latitude"),
+                       crs = 4326)
+```
+
+
+### 2 regions
+
+
+```{r}
+gg <- dat_plot_regions[kk == 2] %>% 
+  ggplot(aes(Longitude, Latitude, colour = region, label = Name))+
+  borders()+
+  geom_point()+
+  xlab(NULL)+ylab(NULL)+
+  scale_x_continuous(labels = function(x) paste0(x, "°E"),
+                     breaks = c(5,10,15))+
+  scale_y_continuous(labels = function(x) paste0(x, "°N"),
+                     breaks = c(44,46,48))+
+  coord_quickmap(xlim = range(dat_meta$Longitude), ylim = range(dat_meta$Latitude))+
+  theme_bw()+
+  theme(panel.grid.minor = element_blank(),
+        legend.position = "none")
+
+ggplotly(gg,
+         tooltip = c("colour", "label", "x", "y"))
+```
+
+
+
+### 3 regions
+
+
+```{r}
+gg <- dat_plot_regions[kk == 3] %>% 
+  ggplot(aes(Longitude, Latitude, colour = region, label = Name))+
+  borders()+
+  geom_point()+
+  xlab(NULL)+ylab(NULL)+
+  scale_x_continuous(labels = function(x) paste0(x, "°E"),
+                     breaks = c(5,10,15))+
+  scale_y_continuous(labels = function(x) paste0(x, "°N"),
+                     breaks = c(44,46,48))+
+  coord_quickmap(xlim = range(dat_meta$Longitude), ylim = range(dat_meta$Latitude))+
+  theme_bw()+
+  theme(panel.grid.minor = element_blank(),
+        legend.position = "none")
+
+ggplotly(gg,
+         tooltip = c("colour", "label", "x", "y"))
+```
+
+
+
+### 4 regions
+
+
+```{r}
+
+sf_regions[sf_regions$kk == 4, ] %>% 
+  leaflet() %>% 
+  addProviderTiles("Esri.NatGeoWorldMap") %>% 
+  addCircleMarkers()
+```
+
+
+Time series
+=====================================
+
+
+
+
+
+
+Trends {.storyboard}
+=========================================
+
+```{r trend-data, include=FALSE}
+
+dat_meta_clust <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/meta-with-cluster-01.rds")
+load("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/trends-01-1971-2019-ols-gls.rda")
+
+dat_plot_month <- dat_month_gls[term == "year0"] %>% 
+  merge(dat_meta_clust, by = "Name")
+dat_plot_month[, est_low := estimate - 1.96 * std.error]
+dat_plot_month[, est_high := estimate + 1.96 * std.error]
+mitmatmisc::add_month_fct(dat_plot_month, 10)
+dat_plot_month[, hilo := fct_collapse(cluster_fct, 
+                                      high = c("South & high Alpine", "North & high Alpine"),
+                                      low = c("NW", "NE", "SE"))]
+dat_plot_month[, trend := round(estimate*10, 2)]
+
+
+```
+
+
+### December
+
+```{r}
+
+
+gg1 <- dat_plot_month[month == 12 & hilo == "high"] %>% 
+  ggplot(aes(trend, Elevation, xmin = est_low*10, xmax = est_high*10, colour = cluster_fct))+
+  geom_vline(xintercept = 0)+
+  # geom_linerange(size = 0.1)+
+  geom_point()+
+  facet_grid(. ~ cluster_fct)+ # free_x or free
+  theme_bw()+
+  theme(panel.grid.minor = element_blank())+
+  scale_color_brewer("", palette = "Set1", guide = F)+
+  # scale_x_continuous(breaks = 10*seq(-4, 4, by = 2))+
+  # scale_y_continuous(breaks = seq(0, 3000, by = 500), limits = c(0, NA))+
+  # geom_blank(inherit.aes = F, data = dat_ylim, aes(x = 0, y = max_elev))+
+  xlab("Linear trend in monthly mean HS [cm per decade]")+
+  ylab("Elevation [m]")
+
+ggplotly(gg1,
+         tooltip = c("x", "y"))
+```
+
+```{r include=FALSE}
+gg2 <- dat_plot_month[month == 12 & hilo == "low"] %>% 
+  ggplot(aes(trend, Elevation, xmin = est_low*10, xmax = est_high*10, colour = cluster_fct))+
+  geom_vline(xintercept = 0)+
+  geom_pointrange(size = 0.1, fatten = 0.5)+
+  facet_grid(. ~ cluster_fct)+ # free_x or free
+  theme_bw()+
+  theme(panel.grid.minor = element_blank())+
+  scale_color_brewer("", palette = "Set1", guide = F)+
+  # scale_x_continuous(breaks = 10*seq(-4, 4, by = 2))+
+  # scale_y_continuous(breaks = seq(0, 3000, by = 500), limits = c(0, NA))+
+  # geom_blank(inherit.aes = F, data = dat_ylim, aes(x = 0, y = max_elev))+
+  xlab("Linear trend in monthly mean HS [cm per decade]")+
+  ylab("Elevation [m]")
+
+ggplotly(gg2,
+         tooltip = c("x", "y"))
+
+```
+
+### January
+
+```{r}
+```
+
+
+
+More info 
+=========================================
+
+
+### Regions
+
+The regions were derived using a multivariate technique, ...
+
+

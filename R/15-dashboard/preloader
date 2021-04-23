@@ -1,0 +1,24 @@
+
+```{css, echo=FALSE}
+#preloader {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 999;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  background: rgba(255,255,255,0.5) url('https://cdn.dribbble.com/users/107759/screenshots/2436386/copper-loader.gif') no-repeat center 20%;
+}
+```
+
+::: {#preloader}
+:::
+
+```{js, echo=FALSE}
+$(function() {
+  $(window).load(function() {
+    $('#preloader').fadeOut('slow',function(){$(this).remove();});
+  });
+});
+```
