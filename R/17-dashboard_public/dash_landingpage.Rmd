@@ -1,0 +1,50 @@
+---
+title: "CLIRSNOW - Snow in the Alps"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+```
+
+Row
+-----------------------------------------------------------------------
+
+### Project
+This is the project landing page
+
+
+Row
+-----------------------------------------------------------------------
+
+### Past
+
+```{r}
+valueBox(42, icon = "fa-pencil", href="./clirsnow_past.html")
+```
+
+
+
+### Present
+
+```{r}
+valueBox(43, icon = "fa-pencil", href="https://www.google.com/")
+```
+
+
+
+### Future
+
+```{r}
+valueBox(44, icon = "fa-pencil", href="#details")
+```
+
+
+Row
+-----------------------------------------------------------------------
+
+### Contact
+People to contact, grants...
