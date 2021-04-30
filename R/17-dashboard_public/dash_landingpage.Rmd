@@ -23,7 +23,7 @@ Row
 ### Past
 
 ```{r}
-valueBox(42, icon = "fa-pencil", href="./clirsnow_past.html")
+valueBox(42, icon = "fa-pencil", href="./dash_past.html")
 ```
 
 
