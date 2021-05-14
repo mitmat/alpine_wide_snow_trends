@@ -37,8 +37,9 @@ dem = raster::stack(pth_dem)
 dem[dem == -32768] = NA #  or is 0 betta??? for 3d model
 
 # subset
-# sub = mapedit::drawFeatures()
+sub = mapedit::drawFeatures()
 sub = c(xmin = 11.67, ymin = 46.49, xmax = 11.77, ymax = 46.57) # plattkofel
+sub = c(xmin = 10.20, ymin = 45.61, xmax = 12.71, ymax = 47.00) # st
 sub = sf::st_bbox(sub, crs = sf::st_crs(4326))
 mapview::mapview(sub)
 sub = sf::st_transform(st_as_sfc(sub), crs = st_crs(dem))
@@ -51,7 +52,7 @@ plot(scd_sub)
 # quadmesh
 qm_dem_sub <- quadmesh(dem_sub)
 rgl.clear()
-shade3d(qm_dem_sub, col = "grey"); aspect3d(1, 1, 0.25)
+shade3d(qm_dem_sub, col = "grey"); aspect3d(1, 1, 0.075) # last value is z scalierung, kleiner ist abflachender
 rglwidget()
 
 
