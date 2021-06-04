@@ -30,7 +30,7 @@ dem[dem == -32768] = NA #  or is 0 betta??? for 3d model
 
 # subset
 #sub = mapedit::drawFeatures()
-#sub = c(xmin = 11.67, ymin = 46.49, xmax = 11.77, ymax = 46.57) # plattkofel
+sub = c(xmin = 11.67, ymin = 46.49, xmax = 11.77, ymax = 46.57) # plattkofel
 sub = c(xmin = 10.20, ymin = 45.61, xmax = 12.71, ymax = 47.00) # st
 sub = sf::st_bbox(sub, crs = sf::st_crs(4326))
 #mapview::mapview(sub)
@@ -58,12 +58,17 @@ str(m)
 
 # turn into mesh
 m_dem <- quadmesh(dem_sub) # doesnt seem that quadmesh is supported, only mesh3d
+
+wire3d(qm)
+tm <- triangmesh(dem_sub)
+
+
 str(m_dem)
 
 ## visualize
 mapdeck() %>%
   add_mesh(
-    data = m
+    data = tm
   )
 
 
