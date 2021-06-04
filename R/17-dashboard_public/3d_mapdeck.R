@@ -19,6 +19,7 @@ mapdeck_tokens()
 # mapdeck()
 
 # eurac data -------------------------------------------------------------------
+
 # snow cover duration mean 20yrs
 pth_scd = "/mnt/CEPH_PROJECTS/SNOW_3rd_gen/CLOUDREMOVAL/v1.1/clim_SCD/2000-10-01_2019-09-30.tif"
 scd = raster::stack(pth_scd)
@@ -31,7 +32,7 @@ dem[dem == -32768] = NA #  or is 0 betta??? for 3d model
 # subset
 #sub = mapedit::drawFeatures()
 sub = c(xmin = 11.67, ymin = 46.49, xmax = 11.77, ymax = 46.57) # plattkofel
-sub = c(xmin = 10.20, ymin = 45.61, xmax = 12.71, ymax = 47.00) # st
+#sub = c(xmin = 10.20, ymin = 45.61, xmax = 12.71, ymax = 47.00) # st
 sub = sf::st_bbox(sub, crs = sf::st_crs(4326))
 #mapview::mapview(sub)
 sub = sf::st_transform(st_as_sfc(sub), crs = st_crs(dem))
@@ -44,9 +45,10 @@ plot(scd_sub)
 # turn into df
 dem_sub
 dem_sub_df = as.data.frame(raster::projectRaster(from = dem_sub, crs = 4326), 
-                           xy = TRUE), 
-                           centroids = TRUE)
-
+                           xy = TRUE
+                           , centroids = TRUE
+                           ) 
+                           
 summary(dem_sub_df$eurac_modis_altitude_laea)
 
 
@@ -59,11 +61,14 @@ str(m)
 # turn into mesh
 m_dem <- quadmesh(dem_sub) # doesnt seem that quadmesh is supported, only mesh3d
 
-wire3d(qm)
+wire3d(m_dem)
 tm <- triangmesh(dem_sub)
 
 
 str(m_dem)
+# TODO: ALIGN THE STRUCTURES
+str(tm)
+str(m)
 
 ## visualize
 mapdeck() %>%
