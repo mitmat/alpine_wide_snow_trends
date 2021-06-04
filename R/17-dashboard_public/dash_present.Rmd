@@ -1,0 +1,55 @@
+---
+title: "Present"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(mapview)
+library(stars)
+library(sf)
+library(raster)
+```
+
+```{r processing, include=FALSE}
+pth_scd = "/mnt/CEPH_PROJECTS/SNOW_3rd_gen/CLOUDREMOVAL/v1.1/clim_SCD/2000-10-01_2019-09-30.tif"
+scd = raster::stack(pth_scd)
+sub = c(xmin = 10.20, ymin = 45.61, xmax = 12.71, ymax = 47.00) # st
+sub = sf::st_bbox(sub, crs = sf::st_crs(4326))
+sub = sf::st_transform(st_as_sfc(sub), crs = st_crs(scd))
+scd_sub = crop(scd, as(sub, "Spatial"))
+
+scd_mv = mapview(scd_sub, layer.name = "X2000.10.01_2019.09.30")
+
+```
+
+
+
+
+Column {data-width=650}
+-----------------------------------------------------------------------
+
+### Chart A
+
+```{r}
+scd_mv
+```
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Chart B
+
+```{r}
+plot(2, 1)
+```
+
+### Chart C
+
+```{r}
+plot(3, 1)
+```
+
