@@ -1,12 +1,12 @@
 # 3d vis of alps with snowcover
 
-
 ## libs
 library(raster)
 library(quadmesh)
 library(rgl)
 library(colourvalues)
 library(sf)
+library(mapview)
 
 # examples --------------------------------------------------------------------- 
 # from here: https://rpubs.com/cyclemumner/geomesh-r
@@ -63,5 +63,12 @@ qm_dem_sub$material$col <- colourvalues::colour_values(qm_scd_sub$vb[3, qm_scd_s
 rgl.clear()
 shade3d(qm_dem_sub); aspect3d(1, 1, 0.25)
 rglwidget()
+
+
+
+# mapview ----
+mapview(scd_sub, layer.name = "X2000.10.01_2019.09.30")
+
+
 
 
