@@ -73,7 +73,7 @@ str(m)
 ## visualize
 mapdeck() %>%
   add_mesh(
-    data = tm
+    data = m
   )
 
 
