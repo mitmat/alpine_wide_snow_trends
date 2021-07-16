@@ -21,7 +21,7 @@ library(officer)
 
 library(fs)
 library(raster)
-
+library(sf)
 
 
 # data --------------------------------------------------------------------

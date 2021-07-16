@@ -996,6 +996,47 @@ read_docx() %>%
   body_add_flextable(ft) %>% 
   print(target = "/mnt/CEPH_PROJECTS/CLIRSNOW/00_exchange/table-jacopo.docx")
 
+
+
+
+# area estimates nimbus ---------------------------------------------------
+
+
+st_area(sf_man_hull)/1000/1000
+# 286k km2
+
+sf_man_hull_485 <- st_crop(sf_man_hull, c(xmin = 5, xmax = 18, ymin = 44, ymax = 48.5))
+st_area(sf_man_hull_485)/1000/1000
+# 260k km2
+
+mapview(sf_man_hull)+mapview(sf_man_hull_485)
+
+
+dat[ff == "05_temporal_complete_max10d" & 
+      value_fct == "snow"] -> dat2
+
+dat[date == "2005-03-05"]
+
+rs1 <- read_stars(fn_sample_raster)
+rs1
+st_area(rs1)
+
+# total: 754k km2
+4901*2867*53665/1000/1000
+
+# without water and nodata
+dat[date == "2005-03-05"]
+dat[date == "2005-03-05", sum(area_km2)]
+dat[date == "2005-03-05" & value_fct != "nodata_water", sum(area_km2)]
+
+401651/554776
+
+
+
+# check if >= 1cm makes a difference for SCD ------------------------------
+
+
+
 # EOF ---------------------------------------------------------------------
 
 
