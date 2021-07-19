@@ -1033,7 +1033,81 @@ dat[date == "2005-03-05" & value_fct != "nodata_water", sum(area_km2)]
 
 
 
-# check if >= 1cm makes a difference for SCD ------------------------------
+# some nimbus plot --------------------------------------------------------
+
+
+library(graticule)
+
+prj <- st_crs(rs_clim)$proj4string
+
+lons <- seq(10, 12, by = 2)
+lats <- seq(46, 48, by = 1)
+xl <- range(lons) + c(-0.4, 0.4)
+yl <- range(lats) + c(-0.4, 0.4)
+grat <- graticule(lons, lats, proj = prj, xlim = xl, ylim = yl)
+labs <- graticule_labels(lons, lats, xline = min(xl), yline = max(yl), proj = prj)
+
+ggplot()+
+  geom_sf(data = st_as_sf(grat))
+
+# gg_clim <-
+ggplot()+
+  geom_sf(data = st_as_sf(grat))+
+  geom_stars(data = rs_clim, downsample = c(10))+
+  scale_fill_scico("Durata media della copertura nevosa sul periodo 2000-2019 [giorni]",
+                   palette = "devon", na.value = NA, direction = 1)+
+  coord_sf(expand = F)+
+  theme_minimal(16)+
+  xlab(NULL)+ylab(NULL)+
+  theme(legend.position = "bottom")
+
+
+
+# quick check seasonal index versus monthly values ------------------------
+
+dat_month <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/05_MONTHLY/rds/1961-2020_gapfilled_HS_sub/data_long_HSmax_SCD.rds")
+dat_month
+dat_month <- mitmatmisc::add_hydro_year(dat_month)
+
+dat_season <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/06_SEASONAL/indices/maxHS_NDJFMAM.rds")
+dat_season
+
+dat1 <- dat_month[month %in% c(11:12, 1:5) & !is.na(HSmax),
+                  .(mm = max(HSmax),
+                    nn = .N),
+                  .(Name, year = hydro_year)]
+
+
+dat1[nn == 7] %>% 
+  merge(dat_season, by= c("Name", "year")) -> dat_comp 
+
+dat_comp %>% 
+  ggplot(aes(mm, maxHS_NDJFMAM))+
+  geom_point()
+
+dat_comp[mm != maxHS_NDJFMAM]
+
+
+
+
+dat_season <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/06_SEASONAL/indices/SCD_NDJFMAM.rds")
+dat_season
+
+dat1 <- dat_month[month %in% c(11:12, 1:5) & !is.na(SCD1),
+                  .(mm = sum(SCD1),
+                    nn = .N),
+                  .(Name, year = hydro_year)]
+
+
+dat1[nn == 7] %>% 
+  merge(dat_season, by= c("Name", "year")) -> dat_comp 
+
+dat_comp %>% 
+  ggplot(aes(mm, SCD_NDJFMAM))+
+  geom_point()
+
+dat_comp[mm != SCD_NDJFMAM]
+
 
 
 
