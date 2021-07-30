@@ -10,7 +10,7 @@ library(readxl)
 
 
 
-path_out <- "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/zenodo-data/"
+path_out <- "/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/zenodo-data-v1.2/"
 path_out_temp <- path(path_out, "temp")
 dir_create(path_out_temp)
 
