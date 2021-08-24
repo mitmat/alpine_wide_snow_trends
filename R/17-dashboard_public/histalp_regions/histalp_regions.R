@@ -53,11 +53,29 @@ mapview(ext_scd) + mapview(ext_stations)
 ext_combined = st_intersection(ext_scd, st_transform(ext_stations, crs = st_crs(ext_scd)))
 mapview(ext_combined)
 
-# digitalize
-histalp_regions = mapedit::editFeatures(st_as_sf(ext_combined))
-histalp_regions
+# download official regions
+# wget http://www.zamg.ac.at/histalp/download/crsm/Shape_CRSM.ZIP
+shp = read_sf("R/17-dashboard_public/histalp_regions/Shape_CRSM.shp")
+mapview(shp) + mapview(ext_combined)
 
-# save
-st_write(histalp_regions, "git_projects/alpine_wide_snow_trends/R/17-dashboard_public/histalp_regions/histalp_regions.shp")
-saveRDS(histalp_regions, "git_projects/alpine_wide_snow_trends/R/17-dashboard_public/histalp_regions/histalp_regions.RDS")
+# temperature and precipitation were edited in qgis according to the image
+# https://rmets.onlinelibrary.wiley.com/doi/epdf/10.1002/joc.1377
+# http://www.zamg.ac.at/histalp/project/maps/gar_reg.php
 
+precip = read_sf("R/17-dashboard_public/histalp_regions/Shape_CRSM_PR.shp")
+temp = read_sf("R/17-dashboard_public/histalp_regions/Shape_CRSM_T.shp")
+mapview(shp) + mapview(precip) + mapview(temp) + mapview(ext_combined)
+
+# # try to get rid of slivers... not working so far
+# temp_clean = temp %>% st_transform(crs = st_crs(3035)) %>% 
+#   st_snap(x = ., y = ., tolerance = 1) %>% 
+#   st_union()
+# mapview(temp_clean)
+# 
+# temp_clean = temp %>% st_transform(crs = st_crs(3035)) %>%  st_buffer(2000)
+# temp_clean = temp_clean %>% 
+#   st_combine() %>% 
+#   st_union()
+# temp_clean = st_difference(temp_clean, temp_clean) %>%
+#   st_combine() %>%
+#   st_union()
