@@ -13,17 +13,28 @@ library(stars)
 library(sf)
 library(raster)
 library(leaflet)
+
+library(raster)
+library(slideview)
+
 ```
 
 ```{r processing, include=FALSE}
-pth_scd = "/mnt/CEPH_PROJECTS/SNOW_3rd_gen/CLOUDREMOVAL/v1.1/clim_SCD/2000-10-01_2019-09-30.tif"
-scd = raster::stack(pth_scd)
+
+# present
+pth_scd = "/mnt/CEPH_PROJECTS/SNOW_3rd_gen/CLOUDREMOVAL/v1.1/clim_SCD/2000-10-01_2019-09-30_16bit_3035.tif"
+scd = raster::raster(pth_scd)
 sub = c(xmin = 10.20, ymin = 45.61, xmax = 12.71, ymax = 47.00) # st
 sub = sf::st_bbox(sub, crs = sf::st_crs(4326))
 sub = sf::st_transform(st_as_sfc(sub), crs = st_crs(scd))
 scd_sub = crop(scd, as(sub, "Spatial"))
 
 scd_mv = mapview(scd_sub, layer.name = "X2000.10.01_2019.09.30")
+
+# future
+pth_scd_future = "/mnt/CEPH_PROJECTS/CLIRSNOW/data_bc/ds/scd_ensemble_mean_2041_2070/rcp26_noglacier_16bit_3035.tif"
+scd_future = raster::raster(pth_scd_future)
+scd_future_sub = crop(scd_future, as(sub, "Spatial"))
 
 ```
 
@@ -51,7 +62,6 @@ m@map = m@map %>%
               attribution = "") %>% mapview:::mapViewLayersControl(names = c("EuracMosaic"))
 m
 
-
 # wms_grb <- "https://geoservices.informatievlaanderen.be/raadpleegdiensten/GRB-basiskaart/wms"
 # leaflet() %>% 
 #   setView(lng = 4.287638, lat = 50.703039, zoom = 15) %>% 
@@ -63,11 +73,22 @@ m
 
 ```
 
+### Slider
+
+```{r slideview_r}
+# scd_sub_br = brick(scd_sub, scd_sub, scd_sub)
+# scd_future_sub_br = brick(scd_future_sub, scd_future_sub, scd_future_sub)
+
+slideView(img1 = scd_sub, img2 =scd_future_sub, 
+          label1 = "present", label2 = "future", 
+          legend = TRUE, col.regions = viridisLite::inferno(256))
+```
+
 
 Column {data-width=350}
 -----------------------------------------------------------------------
 
-### Iframe
+### Iframe 1
 
 <iframe
     src="https://maps.eurac.edu/maps/680/embed" 
@@ -79,7 +100,7 @@ Column {data-width=350}
 
 
 
-### Slider
+### Iframe 2
 
 <iframe
   style="border: none;" height="400" width="600"
