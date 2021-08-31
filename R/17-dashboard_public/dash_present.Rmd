@@ -12,6 +12,7 @@ library(mapview)
 library(stars)
 library(sf)
 library(raster)
+library(leaflet)
 ```
 
 ```{r processing, include=FALSE}
@@ -32,24 +33,58 @@ scd_mv = mapview(scd_sub, layer.name = "X2000.10.01_2019.09.30")
 Column {data-width=650}
 -----------------------------------------------------------------------
 
-### Chart A
+### Local MV
 
-```{r}
+```{r local_mapview}
 scd_mv
 ```
+
+
+### WMS MV
+```{r wms_mv}
+m = mapview(st_bbox(scd))
+m@map = m@map %>% 
+  addWMSTiles(group = 'EuracMosaic',
+              "http://saocompute.eurac.edu/geoserver/ows?SERVICE=WMS",
+              layers  = 'SENTINEL2:S2_MOSAIC_2019_ST_stretch_mask_3857',
+              options = WMSTileOptions(format = "image/png", transparent = TRUE),
+              attribution = "") %>% mapview:::mapViewLayersControl(names = c("EuracMosaic"))
+m
+
+
+# wms_grb <- "https://geoservices.informatievlaanderen.be/raadpleegdiensten/GRB-basiskaart/wms"
+# leaflet() %>% 
+#   setView(lng = 4.287638, lat = 50.703039, zoom = 15) %>% 
+#   addWMSTiles(
+#     wms_grb,
+#     layers = "GRB_BSK",
+#     options = WMSTileOptions(format = "image/png", transparent = TRUE)
+#   )
+
+```
+
 
 Column {data-width=350}
 -----------------------------------------------------------------------
 
-### Chart B
+### Iframe
 
-```{r}
-plot(2, 1)
-```
+<iframe
+    src="https://maps.eurac.edu/maps/680/embed" 
+    frameborder="0"
+    style="overflow:hidden;height:100%;width:100%" 
+    height="100%" 
+    width="100%">
+</iframe>
 
-### Chart C
 
-```{r}
-plot(3, 1)
-```
+
+### Slider
+
+<iframe
+  style="border: none;" height="400" width="600"
+  src="https://maps.eurac.edu/maps/611/embed">
+</iframe>
+
+
 
