@@ -37,8 +37,9 @@ pth_scd_new = lapply(pth_scd, function(in_file){
   scd_3035 = read_stars(tmp_file) %>% round(0)
   scd_3035[is.na(scd_3035[1])] = na_value
   out_file = paste0(tools::file_path_sans_ext(in_file), "_16bit_3035.tif")
+  #out_file = gsub("-", "_", out_file)
   write_stars(scd_3035, out_file, 
-              driver = "GTiff", update = FALSE, type = "Int16", NA_value = na_value)
+              driver = "GTiff", update = FALSE, type = "UInt16", NA_value = na_value)
   file.remove(tmp_file)
   return(out_file)
 })
@@ -50,11 +51,14 @@ scd_new = read_stars(pth_scd_new[[1]])
 st_crs(scd)
 st_crs(scd_new)
 system(paste0("gdalinfo ", pth_scd[[1]]))
-system(paste0("gdalinfo ", pth_scd_new[[1]]))
+system(paste0("gdalinfo ", pth_scd_new[[2]]))
 
 summary(scd %>% pull() %>% c())
 summary(scd_new %>% pull() %>% c())
 
 plot(scd)
 plot(scd_new)
+
+
+
 
