@@ -27,6 +27,7 @@ library(cluster)
 library(foreach)
 library(sf)
 library(leaflet)
+library(mapview)
 
 cols_cluster <- setNames(scales::brewer_pal(palette = "Set1")(5),
                          c("NW", "NE", "North & high Alpine", "South & high Alpine", "SE"))
@@ -69,21 +70,37 @@ sf_regions <- st_as_sf(dat_plot_regions,
 
 ```
 
+```{r histalp_regions, include=FALSE}
+histalp_reg_p = read_sf("R/17-dashboard_public/histalp_regions/Shape_CRSM_PR.shp")
+histalp_reg_t = read_sf("R/17-dashboard_public/histalp_regions/Shape_CRSM_T.shp")
+
+```
+
+
 
 ### 2 regions
 
 ```{r}
 sf_cur <- sf_regions[sf_regions$kk == 2, ]
 leaf_col <- colorFactor("Accent", levels(sf_cur$Region))
+leaf_col_histalp = colorFactor("Accent", levels = histalp_reg_p$region)
 
-sf_cur %>% 
-  leaflet() %>% 
-  addProviderTiles("Esri.WorldTopoMap") %>% 
-  addCircleMarkers(color = ~leaf_col(Region),
-                   stroke = FALSE, 
-                   radius = 5,
-                   fillOpacity = 0.8,
-                   label = ~label) 
+# sf_cur %>% 
+#   leaflet() %>% 
+#   addProviderTiles("Esri.WorldTopoMap") %>% 
+#   addCircleMarkers(color = ~leaf_col(Region),
+#                    stroke = FALSE, 
+#                    radius = 5,
+#                    fillOpacity = 0.8,
+#                    label = ~label)
+
+mapview(sf_cur, zcol = "Region", label = "label", col.reg = leaf_col(sf_cur$Region), layer.name = "CliRSnow Regions") + 
+  mapview(histalp_reg_p, zcol = "region", label = "region", 
+          col.reg = leaf_col_histalp(histalp_reg_p$region), layer.name = "Histalp Precip.") + 
+  mapview(histalp_reg_t, zcol = "region", label = "region", 
+          col.reg = leaf_col_histalp(histalp_reg_t$region), layer.name = "Histalp Temp.")
+
+
 ```
 
 ***
@@ -98,15 +115,27 @@ Divides the whole Alps by elevation into high and low stations, irrespective of 
 ```{r}
 sf_cur <- sf_regions[sf_regions$kk == 5, ]
 leaf_col <- colorFactor("Set1", levels = levels(dat_meta_clust$cluster_fct))
+leaf_col_histalp = colorFactor("Set1", levels = histalp_reg_p$region)
 
-sf_cur %>% 
-  leaflet() %>% 
-  addProviderTiles("Esri.WorldTopoMap") %>% 
-  addCircleMarkers(color = ~leaf_col(cluster_fct),
-                   stroke = FALSE, 
-                   radius = 5,
-                   fillOpacity = 0.8,
-                   label = ~label) 
+# sf_cur %>% 
+#   leaflet() %>% 
+#   addProviderTiles("Esri.WorldTopoMap") %>% 
+#   addCircleMarkers(color = ~leaf_col(cluster_fct),
+#                    stroke = FALSE, 
+#                    radius = 5,
+#                    fillOpacity = 0.8,
+#                    label = ~label) 
+
+mapview(sf_cur, zcol = "cluster_fct", label = "label", 
+        col.reg = leaf_col(sf_cur$cluster_fct), layer.name = "CliRSnow Regions") + 
+  mapview(histalp_reg_p, zcol = "region", label = "region", 
+          col.reg = leaf_col_histalp(histalp_reg_p$region), layer.name = "Histalp Precip.") + 
+  mapview(histalp_reg_t, zcol = "region", label = "region", 
+          col.reg = leaf_col_histalp(histalp_reg_t$region), layer.name = "Histalp Temp.")
+
+
+
+
 ```
 
 
