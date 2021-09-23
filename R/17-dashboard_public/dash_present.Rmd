@@ -1,5 +1,5 @@
 ---
-title: "Present"
+title: "CLIRSNOW Present"
 output: 
   flexdashboard::flex_dashboard:
     orientation: columns
@@ -44,66 +44,23 @@ scd_future_sub = crop(scd_future, as(sub, "Spatial"))
 Column {data-width=650}
 -----------------------------------------------------------------------
 
-### Local MV
+### South Tyrol (local test)
 
 ```{r local_mapview}
 scd_mv
 ```
 
-
-### WMS MV
-```{r wms_mv}
-# m = mapview(st_bbox(scd))
-# m@map = m@map %>% 
-#   addWMSTiles(group = 'EuracMosaic',
-#               "http://saocompute.eurac.edu/geoserver/ows?SERVICE=WMS",
-#               layers  = 'SENTINEL2:S2_MOSAIC_2019_ST_stretch_mask_3857',
-#               options = WMSTileOptions(format = "image/png", transparent = TRUE),
-#               attribution = "") %>% mapview:::mapViewLayersControl(names = c("EuracMosaic"))
-# m
-# 
-
-# m = mapview(st_bbox(scd))
-# m@map = m@map %>% 
-#   addWMSTiles(group = 'SCD',
-#               "https://maps.eurac.edu/geoserver/ows?service=wms&version=1.3.0",
-#               layers  = "geonode:scd_2041_2070_rcp85_noglacier_16bit_3035",
-#               options = WMSTileOptions(format = "image/png", transparent = TRUE),
-#               attribution = "") %>% mapview:::mapViewLayersControl(names = c("SCD"))
-# m
-
-
-#wms_euracmaps = "https://maps.eurac.edu/geoserver/ows?service=wms&version=1.3.0"
-wms_euracmaps = "https://maps.eurac.edu/geoserver/ows?"
-layer_name = "geonode:scd_2041_2070_rcp85_noglacier_16bit_3035"
-layer_name = "geonode:2000-10-01_2019-09-30"
-#wms_grb <- "https://geoservices.informatievlaanderen.be/raadpleegdiensten/GRB-basiskaart/wms"
-leaflet() %>%
-  setView(lng = 11.347, lat = 46.464, zoom = 15) %>%
-  addWMSTiles(
-    wms_euracmaps,
-    layers = layer_name,
-    options = WMSTileOptions(format = "image/png", transparent = TRUE)
-  )
-
-```
-
-### Slider
-
-```{r slideview_r}
-# scd_sub_br = brick(scd_sub, scd_sub, scd_sub)
-# scd_future_sub_br = brick(scd_future_sub, scd_future_sub, scd_future_sub)
-
-slideView(img1 = scd_sub, img2 =scd_future_sub, 
-          label1 = "present", label2 = "future", 
-          legend = TRUE, col.regions = viridisLite::inferno(256))
-```
-
-
 Column {data-width=350}
 -----------------------------------------------------------------------
 
-### Iframe 1
+### Full Alps
+
+```{r link_to_maps}
+valueBox("2000-2020", icon = "fa-circle", href="https://maps.eurac.edu/maps/722/view")
+```
+
+
+### Full Alps - Embedded
 
 <iframe
     src="https://maps.eurac.edu/maps/722/embed" 
@@ -112,15 +69,4 @@ Column {data-width=350}
     height="100%" 
     width="100%">
 </iframe>
-
-
-
-### Iframe 2
-
-<iframe
-  style="border: none;" height="400" width="600"
-  src="https://maps.eurac.edu/maps/611/embed">
-</iframe>
-
-
 

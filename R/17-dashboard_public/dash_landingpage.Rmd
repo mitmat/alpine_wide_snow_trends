@@ -23,23 +23,19 @@ Row
 ### Past
 
 ```{r}
-valueBox(42, icon = "fa-pencil", href="./dash_past.html")
+valueBox("1972-2000", icon = "fa-arrow-left", href="./dash_past.html")
 ```
-
-
 
 ### Present
 
 ```{r}
-valueBox(43, icon = "fa-pencil", href="https://www.google.com/")
+valueBox("2000-2020", icon = "fa-circle", href="./dash_present.html")
 ```
-
-
 
 ### Future
 
 ```{r}
-valueBox(44, icon = "fa-pencil", href="#details")
+valueBox("2041-2100", icon = "fa-arrow-right", href="./dash_future.html")
 ```
 
 

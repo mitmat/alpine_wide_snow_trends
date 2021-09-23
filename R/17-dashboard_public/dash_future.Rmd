@@ -1,0 +1,59 @@
+---
+title: "CLIRSNOW Future"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(mapview)
+library(stars)
+library(sf)
+library(raster)
+library(leaflet)
+
+library(raster)
+library(slideview)
+
+```
+
+Row
+----------------------------------------------------------------------
+These are future scenarios of the snow cover duration driven by climate models.
+
+Column 
+-----------------------------------------------------------------------
+
+### RCP 2.6 2041-2070
+
+```{r vb1}
+valueBox("2041-2070", icon = "fa-arrow-left", href="http://sdi.eurac.edu/slider/cci_snow_test.html")
+```
+
+
+### RCP 2.6 2071-2100
+```{r vb2}
+valueBox("2071-2100", icon = "fa-arrow-left", href="http://sdi.eurac.edu/slider/cci_snow_test_iframe.html")
+```
+
+
+Column 
+-----------------------------------------------------------------------
+
+### RCP 8.5 2041-2070
+
+```{r vb3}
+valueBox("2041-2070", icon = "fa-arrow-left", href="http://sdi.eurac.edu/slider/cci_snow_test.html")
+```
+
+
+### RCP 8.5 2071-2100
+```{r vb4}
+valueBox("2071-2100", icon = "fa-arrow-left", href="http://sdi.eurac.edu/slider/cci_snow_test_iframe.html")
+```
+
+
+
+
