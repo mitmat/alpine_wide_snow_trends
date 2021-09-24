@@ -19,36 +19,6 @@ library(slideview)
 
 ```
 
-```{r processing, include=FALSE}
-
-# present
-pth_scd = "/mnt/CEPH_PROJECTS/SNOW_3rd_gen/CLOUDREMOVAL/v1.1/clim_SCD/scd_20001001_20190930_16bit_3035.tif"
-scd = raster::raster(pth_scd)
-sub = c(xmin = 10.20, ymin = 45.61, xmax = 12.71, ymax = 47.00) # st
-sub = sf::st_bbox(sub, crs = sf::st_crs(4326))
-sub = sf::st_transform(st_as_sfc(sub), crs = st_crs(scd))
-scd_sub = crop(scd, as(sub, "Spatial"))
-
-scd_mv = mapview(scd_sub, layer.name = "SCD_2000_2020")
-
-# future
-pth_scd_future = "/mnt/CEPH_PROJECTS/CLIRSNOW/data_bc/ds/scd_ensemble_mean_2041_2070/scd_2041_2070_rcp26_noglacier_16bit_3035.tif"
-scd_future = raster::raster(pth_scd_future)
-scd_future_sub = crop(scd_future, as(sub, "Spatial"))
-
-```
-
-
-
-
-Column {data-width=650}
------------------------------------------------------------------------
-
-### South Tyrol (local test)
-
-```{r local_mapview}
-scd_mv
-```
 
 Column {data-width=350}
 -----------------------------------------------------------------------
