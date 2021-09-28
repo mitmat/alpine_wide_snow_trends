@@ -1,0 +1,250 @@
+# vizualitzations for the past dashboard part
+
+# output for flexdashboard
+# - mv_2reg: mapview object 2 regions
+# - mv_5reg: mapview object 5 regions
+# - plot_trend_hs: ggplot object trend hs
+# - plot_trend_scd: ggplot object trend scd
+#
+# -> saved as .Rdata: viz_past.Rdata
+
+# libs -------------------------------------------------------------------------
+library(flexdashboard)
+library(knitr)
+library(data.table)
+library(magrittr)
+library(lubridate)
+library(ggplot2)
+library(scico)
+library(forcats)
+library(plotly)
+library(cluster)
+library(foreach)
+library(sf)
+library(leaflet)
+library(mapview)
+
+# colors
+cols_cluster <- setNames(scales::brewer_pal(palette = "Set1")(5),
+                         c("NW", "NE", "North & high Alpine", "South & high Alpine", "SE"))
+
+
+# clustered maps ---------------------------------------------------------------
+
+# load station data for maps
+load("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/regions-01-sinkr-eof.rda")
+dat_meta <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/03_QC1/rds/1961-2020/meta_long_HN_HS.rds")
+dat_meta_clust <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/meta-with-cluster-01.rds")
+mat_clust3_eof <- sinkr_eof$u
+
+dat_regions <- foreach(
+  kk = 2:5,
+  .final = rbindlist
+) %do% {
+  
+  km_fit <- kmeans(mat_clust3_eof[, 1:kk], kk)
+  stn_clust <- km_fit$cluster
+  data.table(kk = kk, 
+             i_cluster = stn_clust,
+             Name = colnames(mat_eof))
+  
+}
+
+dat_plot_regions <- dat_regions %>% merge(dat_meta_clust, by = "Name")
+dat_plot_regions[, Region := factor(i_cluster)]
+dat_plot_regions[, label := paste0(
+  Name, ", ", Elevation, "m, ", round(Longitude, 3), "°E ", round(Latitude, 3), "°N"
+)]
+
+sf_regions <- st_as_sf(dat_plot_regions,
+                       coords = c("Longitude", "Latitude"),
+                       crs = 4326)
+
+# get histalp regions for precip and temp ----
+histalp_reg_p = read_sf("R/17-dashboard_public/histalp_regions/Shape_CRSM_PR.shp")
+histalp_reg_t = read_sf("R/17-dashboard_public/histalp_regions/Shape_CRSM_T.shp")
+
+
+# map for 2 regions ----
+sf_cur <- sf_regions[sf_regions$kk == 2, ]
+leaf_col <- colorFactor("Accent", levels(sf_cur$Region))
+leaf_col_histalp = colorFactor("Accent", levels = histalp_reg_p$region)
+
+mv_2reg = mapview(sf_cur, zcol = "Region", label = "label", col.reg = leaf_col(sf_cur$Region), layer.name = "CliRSnow Regions") + 
+  mapview(histalp_reg_p, zcol = "region", label = "region", 
+          col.reg = leaf_col_histalp(histalp_reg_p$region), layer.name = "Histalp Precip.") + 
+  mapview(histalp_reg_t, zcol = "region", label = "region", 
+          col.reg = leaf_col_histalp(histalp_reg_t$region), layer.name = "Histalp Temp.")
+
+
+### map for 5 regions (used in study) ----
+sf_cur <- sf_regions[sf_regions$kk == 5, ]
+leaf_col <- colorFactor("Set1", levels = levels(dat_meta_clust$cluster_fct))
+leaf_col_histalp = colorFactor("Set1", levels = histalp_reg_p$region)
+
+mv_5reg = mapview(sf_cur, zcol = "cluster_fct", label = "label", 
+        col.reg = leaf_col(sf_cur$cluster_fct), layer.name = "CliRSnow Regions") + 
+  mapview(histalp_reg_p, zcol = "region", label = "region", 
+          col.reg = leaf_col_histalp(histalp_reg_p$region), layer.name = "Histalp Precip.") + 
+  mapview(histalp_reg_t, zcol = "region", label = "region", 
+          col.reg = leaf_col_histalp(histalp_reg_t$region), layer.name = "Histalp Temp.")
+
+
+
+# trend plots ------------------------------------------------------------------
+# set elevation interval  ----
+elev_int <- 500
+
+# table start and end -----
+dat_meta_clust <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/meta-with-cluster-01.rds")
+dat_month <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/data-01-monthly.rds")
+dat_seasonal <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/PAPER/02_review/rds/data-02-seasonal.rds")
+
+# prep seasonal data ----
+dat_seasonal %>% 
+  merge(dat_meta_clust, by = "Name") -> dat_plot_ts
+dat_plot_ts[, elev_fct := cut(Elevation, breaks = seq(0, 3000, by = elev_int), dig.lab = 5)]
+dat_plot_ts[, ns_fct := fct_collapse(cluster_fct,
+                                     "North" = c("NE", "NW", "North & high Alpine"),
+                                     "South" = c("South & high Alpine", "SE"))]
+
+
+dat_plot_ts[, value_stn_mean := mean(value), .(Name, variable)]
+dat_plot_ts[, value_anomaly := value - value_stn_mean]
+
+dat_plot_ts_mean <- dat_plot_ts[, 
+                                .(mean_value = mean(value),
+                                  mean_value_anomaly = mean(value_anomaly),
+                                  nn = .N),
+                                .(year, variable, elev_fct, ns_fct)]
+
+
+dat_plot_ts_mean[, year0 := year - min(year)]
+dat_plot_ts_mean[nn > 5,
+                 broom::tidy(lm(mean_value ~ year0)),
+                 .(variable, elev_fct, ns_fct, nn)] %>% 
+  dcast(variable + elev_fct + ns_fct + nn ~ term, value.var = "estimate") -> dat_table_start_end
+setnames(dat_table_start_end, c("variable", "elevation", "region", "nn" ,"year1971", "trend"))
+
+dat_table_start_end[, year2019 := year1971 + 49*trend]
+
+
+# plot HS ----------------------------------------------------------------------
+# prepare
+# dat_plot <- dat_table_start_end[variable != "maxHS_NDJFMAM"]
+dat_plot <- dat_table_start_end[startsWith(variable, "meanHS") & 
+                                  !(variable %in% c("meanHS_MAM", "meanHS_NDJFMAM") & elevation == "(0,500]")]
+
+dat_plot[, variable := fct_inorder(substr(variable, 8, 99))]
+# dat_plot[, c("snow_index", "season") := tstrsplit(variable, "_")]
+
+dat_plot[, rel_change := (year2019-year1971) / year1971]
+
+dat_plot %>% 
+  melt(measure.vars = c("year1971", "year2019"),
+       variable.name = "year") -> dat_plot2
+dat_plot2[, year := as.numeric(substr(year, 5, 9))]
+
+dat_label_elev <- dat_plot2[year == 1971,
+                            .(ypos = mean(value)),
+                            .(year, variable, elevation)] 
+dat_label_elev[, elevation_lbl := paste0(elevation, "m")]
+
+dat_label_perc <- dat_plot2[year == 2019,
+                            .(year, value, variable, elevation, region, rel_change)]
+dat_label_perc[, lbl := scales::percent(rel_change, 1)]
+dat_label_perc[, year := ifelse(region == "North", 2019, 2050)]
+
+dat_label_perc_title <- dat_label_perc[, 
+                                       .(value = max(value)),
+                                       .(region, year)]
+dat_label_perc_title[, value_max := max(value)]
+
+# make the plot
+# label number of stations
+plot_trend_hs = dat_plot2 %>% 
+  ggplot(aes(year, value, colour = region, linetype = elevation))+
+  geom_point()+
+  geom_line(aes(group = paste0(region, elevation)))+
+  geom_text(data = dat_label_perc_title,
+            aes(label = region, y = value_max, linetype = NULL),
+            hjust = -0.2, vjust = -1)+
+  geom_text(data = dat_label_perc,
+            aes(label = lbl), hjust = -0.2)+
+  geom_text(data = dat_label_elev,
+            aes(y = ypos, colour = NULL, label = elevation_lbl), hjust = 1.1)+
+  scale_x_continuous(limits = c(1900, 2100))+
+  scale_color_brewer(palette = "Dark2")+
+  facet_grid(. ~ variable)+
+  theme_bw(14)+
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        legend.position = "none",
+        panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank())+
+  xlab("Change 1971-2019 (from linear trend)")+
+  ylab("mean HS [cm]")
+
+
+# plot SCD --------------------------------------------------------------------
+# prepare
+dat_plot <- dat_table_start_end[startsWith(variable, "SCD")]
+# dat_plot <- dat_table_start_end[startsWith(variable, "meanHS") & 
+# !(variable %in% c("meanHS_MAM", "meanHS_NDJFMAM") & elevation == "(0,500]")]
+dat_plot[, variable := factor(substr(variable, 5, 99),
+                              levels = c("NDJF", "MAM", "NDJFMAM"))]
+# dat_plot[, c("snow_index", "season") := tstrsplit(variable, "_")]
+
+dat_plot[, rel_change := (year2019-year1971) / year1971]
+
+dat_plot %>% 
+  melt(measure.vars = c("year1971", "year2019"),
+       variable.name = "year") -> dat_plot2
+dat_plot2[, year := as.numeric(substr(year, 5, 9))]
+
+dat_label_elev <- dat_plot2[year == 1971,
+                            .(ypos = mean(value)),
+                            .(year, variable, elevation)] 
+dat_label_elev[, elevation_lbl := paste0(elevation, "m")]
+
+dat_label_perc <- dat_plot2[year == 2019,
+                            .(year, value, variable, elevation, region, rel_change)]
+dat_label_perc[, lbl := scales::percent(rel_change, 1)]
+dat_label_perc[, year := ifelse(region == "North", 2019, 2050)]
+
+dat_label_perc_title <- dat_label_perc[, 
+                                       .(value = max(value)),
+                                       .(variable, region, year)]
+dat_label_perc_title[, value_max := max(value), .(variable)]
+
+# make the plot
+# label number of stations
+plot_trend_scd = dat_plot2 %>% 
+  ggplot(aes(year, value, colour = region, linetype = elevation))+
+  geom_point()+
+  geom_line(aes(group = paste0(region, elevation)))+
+  geom_text(data = dat_label_perc_title,
+            aes(label = region, y = value_max, linetype = NULL),
+            hjust = -0.2, vjust = -1)+
+  geom_text(data = dat_label_perc,
+            aes(label = lbl), hjust = -0.2)+
+  geom_text(data = dat_label_elev,
+            aes(y = ypos, colour = NULL, label = elevation_lbl), hjust = 1.1)+
+  scale_x_continuous(limits = c(1900, 2100))+
+  scale_color_brewer(palette = "Dark2")+
+  facet_wrap( ~ variable, scales = "free_y")+
+  theme_bw(14)+
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        legend.position = "none",
+        panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank())+
+  xlab("Change 1971-2019 (from linear trend)")+
+  ylab("mean SCD [days]")
+
+
+# save -------------------------------------------------------------------------
+save(list = c("mv_2reg", "mv_5reg", "plot_trend_hs", "plot_trend_scd"), 
+     file = "R/17-dashboard_public/viz_past/viz_past.Rdata")
+
+
