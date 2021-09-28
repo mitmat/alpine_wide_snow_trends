@@ -1,0 +1,220 @@
+---
+title: "CliRSnow"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: bootstrap
+    self_contained: true
+    orientation: columns
+    vertical_layout: fill
+    social: ["menu"]
+    logo: media/logo_72x48.png
+    navbar:
+      - { title: "CliRSnow", href: "/", align: right }
+---
+
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(knitr)
+library(ggplot2)
+library(plotly)
+library(sf)
+library(leaflet)
+library(mapview)
+```
+
+Welcome 
+=====================================
+
+Column 
+-------------------------------------
+
+### About CliRSnow
+
+The cryosphere in the European Alps is expected to change substantially with global warming. Existing approaches to infer future snow conditions rely on physical models, either on regional climate models (RCMs) or snow-hydrological models, which are both computationally very intensive. To achieve a high-resolution output for such a large area as the Alps is almost impossible. In CliRSnow, empirical models derived from remote sensing (RS) are employed to provide an innovative and fast solution to increase the precision in future projections of snow cover from RCMs for the whole Alpine area. This will be achieved by correcting the bias in snow cover from RCMs and increasing the spatial resolution with RS snow cover data. Such an approach has now become feasible, because the data that forms its basis is on the verge of being sufficient in time (RS: MODIS time series since 2000) and space (RCM: EURO-CORDEX horizontal resolution at approx. 12.5km).
+
+### Further Reading
+
+**Publications on the project**
+
+Future snow cover in the alps: Using MODIS satellite observations to bias correct snow cover from the EURO-CORDEX regional climate model ensemble
+Matiu M, Petitta M, Notarnicola C, Premier V, Zebisch M (2019)
+Presentation/Speech
+Conference: International Mountain Conference | Innsbruck | 8.9.2019 - 12.9.2019
+http://hdl.handle.net/10863/12805
+
+Aiming at an alpine wide assessment of the temporal changes in the distribution of snow depth using quantile regression: results from a case study in the southern alps
+Matiu M, Petitta M, Notarnicola C, Zebisch M (2019)
+Presentation/Speech
+Conference: ICAM - International Conference on Alpine Meteorology | Riva del Garda | 2.9.2019 - 6.9.2019
+http://hdl.handle.net/10863/12803
+
+Present and future snow cover in the alps: Using MODIS satellite observations to evaluate and bias correct the EURO-CORDEX regional climate model ensemble
+Matiu M, Petitta M, Notarnicola C, Premier V, Zebisch M (2019)
+Presentation/Speech
+Conference: EGU General Assembly 2019 | Vienna | 7.4.2019 - 12.4.2019
+http://hdl.handle.net/10863/12804
+
+
+**Datasets produced throughout the project**
+
+Matiu, M.; Jacob, A.; Notarnicola, C. Daily MODIS Snow Cover Maps for the European Alps from 2002 onwards at 250 m Horizontal Resolution Along with a Nearly Cloud-Free Version. Data 2020, 5, 1. https://doi.org/10.3390/data5010001
+
+- Matiu, M. Bias corrected and downscaled snow cover fraction from EURO-CORDEX RCMs for the Greater Alpine Region. 
+
+### Contact
+For more information please contact
+
+- Michael Matiu, mmatiu.eurac@gmail.com
+
+
+Past {.storyboard}
+=====================================
+
+```{r load_viz_past, include=F}
+load("R/17-dashboard_public/viz_past/viz_past.Rdata")
+
+
+```
+
+### 2 regions
+
+```{r mv_2reg}
+mv_2reg
+
+```
+
+***
+
+Divides the whole Alps by elevation into high and low stations, irrespective of north-south or east-west orientation.
+
+The main variability in snow is along elevation.
+
+### 5 regions (used in study)
+```{r mv_5reg}
+mv_5reg
+
+```
+
+***
+
+With 5 possible regions, the snow series in the Alps are divided by elevation, as well as gradients along north-south and east-west directions. These five regions were used in the analysis:
+
+  - North & high Alpine
+  - South & high Alpine
+  - NW 
+  - NE
+  - SE
+
+Elevation, the north-south divide, and the east-west gradient are the major drivers of snow variability. 
+
+This results in a consistent picture with the Alpine climate, where snow mirrors the temperature and precipitation patterns in the Alps.
+
+
+### Trend by season 1971-2019 HS
+```{r}
+ggplotly(plot_trend_hs)
+
+```
+
+***
+The trends show the evolution of the snow height (HS) from 1971 to 2019.
+
+
+### Trend by season 1971-2019 SCD
+```{r}
+ggplotly(plot_trend_scd)
+
+```
+
+***
+The trends show the evolution of the snow cover duration (SCD) from 1971 to 2019.
+
+
+Present {.storyboard}
+=====================================
+
+### Snow Cover Duration 2000 - 2020
+
+```{r link_to_maps}
+valueBox("2000-2020", icon = "fa-circle", href="https://maps.eurac.edu/maps/722/view")
+```
+
+***
+The map shows the current situation of the snow cover duration (SCD) across the alps.
+
+Average Mean Snow Cover Duration (SCD) based on cloud-filtered MODIS maps at 250m resolution and 19 years of observations from 2000-10-01 to 2019-09-30. The value represents snow covered days [0-365].
+
+By opening the layer menu also the datasets shown in the future tab of this website can be visualized and compared.
+
+Future {.storyboard}
+=====================================
+
+### Snow Cover Duration RCP 2.6 2041-2070
+
+```{r vb1}
+valueBox("RCP 2.6 2041-2070", icon = "fa-long-arrow-alt-right", href="http://sdi.eurac.edu/slider/cci_snow_test.html")
+```
+
+***
+The 4 maps show different scenarios of future snow cover duration (SCD) across the Alps.
+
+Annual Mean Snow Cover Duration (SCD) according to climate projections under the RCP 2.6 scenario from 2041 to 2070. The value represents snow covered days [0-365].
+
+RCP: 
+A Representative Concentration Pathway (RCP) is a greenhouse gas concentration (not emissions) trajectory adopted by the IPCC. 
+
+- RCP 2.6: RCP 2.6 is a "very stringent" pathway. According to the IPCC, RCP 2.6 requires that carbon dioxide emissions start declining by 2020 and go to zero by 2100.
+- RCP 8.5: In this scenario emissions continue to rise throughout the 21st century. It is considered the worst case scenario.
+
+### Snow Cover Duration RCP 2.6 2071-2100
+```{r vb2}
+valueBox("RCP 2.6 2071-2100", icon = "fa-long-arrow-alt-right", href="http://sdi.eurac.edu/slider/cci_snow_test_iframe.html")
+```
+
+***
+The 4 maps show different scenarios of future snow cover duration (SCD) across the Alps.
+
+Annual Mean Snow Cover Duration (SCD) according to climate projections under the RCP 2.6 scenario from 2071 to 2100. The value represents snow covered days [0-365].
+
+RCP: 
+A Representative Concentration Pathway (RCP) is a greenhouse gas concentration (not emissions) trajectory adopted by the IPCC. 
+
+- RCP 2.6: RCP 2.6 is a "very stringent" pathway. According to the IPCC, RCP 2.6 requires that carbon dioxide emissions start declining by 2020 and go to zero by 2100.
+- RCP 8.5: In this scenario emissions continue to rise throughout the 21st century. It is considered the worst case scenario.
+
+
+### Snow Cover Duration RCP 8.5 2041-2070
+
+```{r vb3}
+valueBox("RCP 8.5 2041-2070", icon = "fa-level-up-alt", href="http://sdi.eurac.edu/slider/cci_snow_test.html")
+```
+
+***
+The 4 maps show different scenarios of future snow cover duration (SCD) across the Alps:
+
+Annual Mean Snow Cover Duration (SCD) according to climate projections under the RCP 8.5 scenario from 2041 to 2070. The value represents snow covered days [0-365].
+
+RCP: 
+A Representative Concentration Pathway (RCP) is a greenhouse gas concentration (not emissions) trajectory adopted by the IPCC. 
+
+- RCP 2.6: RCP 2.6 is a "very stringent" pathway. According to the IPCC, RCP 2.6 requires that carbon dioxide emissions start declining by 2020 and go to zero by 2100.
+- RCP 8.5: In this scenario emissions continue to rise throughout the 21st century. It is considered the worst case scenario.
+
+
+### Snow Cover Duration RCP 8.5 2071-2100
+```{r vb4}
+valueBox("RCP 8.5 2071-2100", icon = "fa-level-up-alt", href="http://sdi.eurac.edu/slider/cci_snow_test_iframe.html")
+```
+
+***
+The 4 maps show different scenarios of future snow cover duration (SCD) across the Alps.
+
+Annual Mean Snow Cover Duration (SCD) according to climate projections under the RCP 8.5 scenario from 2070 to 2100. The value represents snow covered days [0-365].
+
+RCP: 
+A Representative Concentration Pathway (RCP) is a greenhouse gas concentration (not emissions) trajectory adopted by the IPCC. 
+
+- RCP 2.6: RCP 2.6 is a "very stringent" pathway. According to the IPCC, RCP 2.6 requires that carbon dioxide emissions start declining by 2020 and go to zero by 2100.
+- RCP 8.5: In this scenario emissions continue to rise throughout the 21st century. It is considered the worst case scenario.
+
