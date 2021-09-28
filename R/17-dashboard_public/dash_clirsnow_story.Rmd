@@ -29,11 +29,13 @@ Welcome
 Column 
 -------------------------------------
 
-### About CliRSnow
+### Welcome
+
+
+**About the Project**
 
 The cryosphere in the European Alps is expected to change substantially with global warming. Existing approaches to infer future snow conditions rely on physical models, either on regional climate models (RCMs) or snow-hydrological models, which are both computationally very intensive. To achieve a high-resolution output for such a large area as the Alps is almost impossible. In CliRSnow, empirical models derived from remote sensing (RS) are employed to provide an innovative and fast solution to increase the precision in future projections of snow cover from RCMs for the whole Alpine area. This will be achieved by correcting the bias in snow cover from RCMs and increasing the spatial resolution with RS snow cover data. Such an approach has now become feasible, because the data that forms its basis is on the verge of being sufficient in time (RS: MODIS time series since 2000) and space (RCM: EURO-CORDEX horizontal resolution at approx. 12.5km).
 
-### Further Reading
 
 **Publications on the project**
 
@@ -55,14 +57,14 @@ Presentation/Speech
 Conference: EGU General Assembly 2019 | Vienna | 7.4.2019 - 12.4.2019
 http://hdl.handle.net/10863/12804
 
-
 **Datasets produced throughout the project**
 
 Matiu, M.; Jacob, A.; Notarnicola, C. Daily MODIS Snow Cover Maps for the European Alps from 2002 onwards at 250 m Horizontal Resolution Along with a Nearly Cloud-Free Version. Data 2020, 5, 1. https://doi.org/10.3390/data5010001
 
-- Matiu, M. Bias corrected and downscaled snow cover fraction from EURO-CORDEX RCMs for the Greater Alpine Region. 
+Matiu, M. Bias corrected and downscaled snow cover fraction from EURO-CORDEX RCMs for the Greater Alpine Region. https://doi.org/10.5281/zenodo.5266359
 
-### Contact
+
+**Contact**
 For more information please contact
 
 - Michael Matiu, mmatiu.eurac@gmail.com
@@ -153,7 +155,7 @@ Future {.storyboard}
 ### Snow Cover Duration RCP 2.6 2041-2070
 
 ```{r vb1}
-valueBox("RCP 2.6 2041-2070", icon = "fa-long-arrow-alt-right", href="http://sdi.eurac.edu/slider/cci_snow_test.html")
+valueBox("RCP 2.6 2041-2070", icon = "fa-long-arrow-alt-right", href="http://sdi.eurac.edu/slider/clirsnow_future_rcp26_2041_2070.html")
 ```
 
 ***
@@ -169,7 +171,7 @@ A Representative Concentration Pathway (RCP) is a greenhouse gas concentration (
 
 ### Snow Cover Duration RCP 2.6 2071-2100
 ```{r vb2}
-valueBox("RCP 2.6 2071-2100", icon = "fa-long-arrow-alt-right", href="http://sdi.eurac.edu/slider/cci_snow_test_iframe.html")
+valueBox("RCP 2.6 2071-2100", icon = "fa-long-arrow-alt-right", href="http://sdi.eurac.edu/slider/clirsnow_future_rcp26_2071_2100.html")
 ```
 
 ***
@@ -187,7 +189,7 @@ A Representative Concentration Pathway (RCP) is a greenhouse gas concentration (
 ### Snow Cover Duration RCP 8.5 2041-2070
 
 ```{r vb3}
-valueBox("RCP 8.5 2041-2070", icon = "fa-level-up-alt", href="http://sdi.eurac.edu/slider/cci_snow_test.html")
+valueBox("RCP 8.5 2041-2070", icon = "fa-level-up-alt", href="http://sdi.eurac.edu/slider/clirsnow_future_rcp85_2041_2070.html")
 ```
 
 ***
@@ -204,7 +206,7 @@ A Representative Concentration Pathway (RCP) is a greenhouse gas concentration (
 
 ### Snow Cover Duration RCP 8.5 2071-2100
 ```{r vb4}
-valueBox("RCP 8.5 2071-2100", icon = "fa-level-up-alt", href="http://sdi.eurac.edu/slider/cci_snow_test_iframe.html")
+valueBox("RCP 8.5 2071-2100", icon = "fa-level-up-alt", href="http://sdi.eurac.edu/slider/clirsnow_future_rcp85_2071_2100.html")
 ```
 
 ***
