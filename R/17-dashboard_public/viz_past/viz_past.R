@@ -66,30 +66,30 @@ histalp_reg_t = read_sf("R/17-dashboard_public/histalp_regions/Shape_CRSM_T.shp"
 
 
 # map for 2 regions ----
-sf_cur <- sf_regions[sf_regions$kk == 2, ]
-leaf_col <- colorFactor("Accent", levels(sf_cur$Region))
-leaf_col_histalp = colorFactor("Accent", levels = histalp_reg_p$region)
+mv2_sf_cur <- sf_regions[sf_regions$kk == 2, ]
+mv2_leaf_col <- colorFactor("Accent", levels(mv2_sf_cur$Region))
+mv2_leaf_col_histalp = colorFactor("Accent", levels = histalp_reg_p$region)
 
-mv_2reg = mapview(sf_cur, zcol = "Region", label = "label", col.reg = leaf_col(sf_cur$Region), layer.name = "CliRSnow Regions") + 
-  mapview(histalp_reg_p, zcol = "region", label = "region", 
-          col.reg = leaf_col_histalp(histalp_reg_p$region), layer.name = "Histalp Precip.") + 
-  mapview(histalp_reg_t, zcol = "region", label = "region", 
-          col.reg = leaf_col_histalp(histalp_reg_t$region), layer.name = "Histalp Temp.")
+# # do this directly in the flexdashboard: dash_clirsnow_story.rmd
+# mv_2reg = mapview(mv2_sf_cur, zcol = "Region", label = "label", col.reg = mv2_leaf_col(mv2_sf_cur$Region), layer.name = "CliRSnow Regions") + 
+#   mapview(histalp_reg_p, zcol = "region", label = "region", 
+#           col.reg = mv2_leaf_col_histalp(histalp_reg_p$region), layer.name = "Histalp Precip.") + 
+#   mapview(histalp_reg_t, zcol = "region", label = "region", 
+#           col.reg = mv2_leaf_col_histalp(histalp_reg_t$region), layer.name = "Histalp Temp.")
 
 
 ### map for 5 regions (used in study) ----
-sf_cur <- sf_regions[sf_regions$kk == 5, ]
-leaf_col <- colorFactor("Set1", levels = levels(dat_meta_clust$cluster_fct))
-leaf_col_histalp = colorFactor("Set1", levels = histalp_reg_p$region)
+mv5_sf_cur <- sf_regions[sf_regions$kk == 5, ]
+mv5_leaf_col <- colorFactor("Set1", levels = levels(dat_meta_clust$cluster_fct))
+mv5_leaf_col_histalp = colorFactor("Set1", levels = histalp_reg_p$region)
 
-mv_5reg = mapview(sf_cur, zcol = "cluster_fct", label = "label", 
-        col.reg = leaf_col(sf_cur$cluster_fct), layer.name = "CliRSnow Regions") + 
-  mapview(histalp_reg_p, zcol = "region", label = "region", 
-          col.reg = leaf_col_histalp(histalp_reg_p$region), layer.name = "Histalp Precip.") + 
-  mapview(histalp_reg_t, zcol = "region", label = "region", 
-          col.reg = leaf_col_histalp(histalp_reg_t$region), layer.name = "Histalp Temp.")
-
-
+# # do this directly in the flexdashboard: dash_clirsnow_story.rmd
+# mv_5reg = mapview(mv5_sf_cur, zcol = "cluster_fct", label = "label", 
+#         col.reg = mv5_leaf_col(mv5_sf_cur$cluster_fct), layer.name = "CliRSnow Regions") + 
+#   mapview(histalp_reg_p, zcol = "region", label = "region", 
+#           col.reg = mv5_leaf_col_histalp(histalp_reg_p$region), layer.name = "Histalp Precip.") + 
+#   mapview(histalp_reg_t, zcol = "region", label = "region", 
+#           col.reg = mv5_leaf_col_histalp(histalp_reg_t$region), layer.name = "Histalp Temp.")
 
 # trend plots ------------------------------------------------------------------
 # set elevation interval  ----
@@ -244,7 +244,10 @@ plot_trend_scd = dat_plot2 %>%
 
 
 # save -------------------------------------------------------------------------
-save(list = c("mv_2reg", "mv_5reg", "plot_trend_hs", "plot_trend_scd"), 
+save(list = c("mv2_sf_cur", "mv2_leaf_col", "mv2_leaf_col_histalp", 
+              "mv5_sf_cur", "mv5_leaf_col", "mv5_leaf_col_histalp", 
+              "histalp_reg_p", "histalp_reg_t",
+              "plot_trend_hs", "plot_trend_scd"), 
      file = "R/17-dashboard_public/viz_past/viz_past.Rdata")
 
 
