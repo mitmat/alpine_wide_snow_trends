@@ -114,7 +114,6 @@ Column {data-width=350}
 </iframe>
 
 
-
 ### Iframe 2
 
 <iframe
@@ -122,5 +121,10 @@ Column {data-width=350}
   src="https://maps.eurac.edu/maps/611/embed">
 </iframe>
 
+### Iframe Slider 
 
+<iframe
+  style="border: none;" height="400" width="600"
+  src="http://sdi.eurac.edu/slider/clirsnow_future_rcp26_2071_2100.html">
+</iframe>
 

@@ -174,7 +174,7 @@ valueBox("RCP 2.6 2041-2070", icon = "fa-long-arrow-alt-right", href="http://sdi
 ```
 
 ***
-The 4 maps show different scenarios of future snow cover duration (SCD) across the Alps.
+The maps show different scenarios of future snow cover duration (SCD) across the Alps.
 
 Annual Mean Snow Cover Duration (SCD) according to climate projections under the RCP 2.6 scenario from 2041 to 2070. The value represents snow covered days [0-365].
 
@@ -190,7 +190,7 @@ valueBox("RCP 2.6 2071-2100", icon = "fa-long-arrow-alt-right", href="http://sdi
 ```
 
 ***
-The 4 maps show different scenarios of future snow cover duration (SCD) across the Alps.
+The maps show different scenarios of future snow cover duration (SCD) across the Alps.
 
 Annual Mean Snow Cover Duration (SCD) according to climate projections under the RCP 2.6 scenario from 2071 to 2100. The value represents snow covered days [0-365].
 
@@ -208,7 +208,7 @@ valueBox("RCP 8.5 2041-2070", icon = "fa-level-up-alt", href="http://sdi.eurac.e
 ```
 
 ***
-The 4 maps show different scenarios of future snow cover duration (SCD) across the Alps:
+The maps show different scenarios of future snow cover duration (SCD) across the Alps:
 
 Annual Mean Snow Cover Duration (SCD) according to climate projections under the RCP 8.5 scenario from 2041 to 2070. The value represents snow covered days [0-365].
 
@@ -225,7 +225,7 @@ valueBox("RCP 8.5 2071-2100", icon = "fa-level-up-alt", href="http://sdi.eurac.e
 ```
 
 ***
-The 4 maps show different scenarios of future snow cover duration (SCD) across the Alps.
+The maps show different scenarios of future snow cover duration (SCD) across the Alps.
 
 Annual Mean Snow Cover Duration (SCD) according to climate projections under the RCP 8.5 scenario from 2070 to 2100. The value represents snow covered days [0-365].
 
@@ -234,4 +234,41 @@ A Representative Concentration Pathway (RCP) is a greenhouse gas concentration (
 
 - RCP 2.6: RCP 2.6 is a "very stringent" pathway. According to the IPCC, RCP 2.6 requires that carbon dioxide emissions start declining by 2020 and go to zero by 2100.
 - RCP 8.5: In this scenario emissions continue to rise throughout the 21st century. It is considered the worst case scenario.
+
+
+### Snow Cover Duration RCP 2.6 vs. RCP 8.5 2041-2070
+```{r vb5}
+valueBox("RCP 2.6 vs RCP 8.5 2041-2070", icon = "fa-clock", 
+         href="http://sdi.eurac.edu/slider/clirsnow_future_rcp26_rcp85_2041_2070.html")
+```
+
+***
+The maps show different scenarios of future snow cover duration (SCD) across the Alps.
+
+Annual Mean Snow Cover Duration (SCD) RCP 2.6 vs RCP 8.5 from 2041 to 2070. The value represents snow covered days [0-365].
+
+RCP: 
+A Representative Concentration Pathway (RCP) is a greenhouse gas concentration (not emissions) trajectory adopted by the IPCC. 
+
+- RCP 2.6: RCP 2.6 is a "very stringent" pathway. According to the IPCC, RCP 2.6 requires that carbon dioxide emissions start declining by 2020 and go to zero by 2100.
+- RCP 8.5: In this scenario emissions continue to rise throughout the 21st century. It is considered the worst case scenario.
+
+### Snow Cover Duration RCP 2.6 vs. RCP 8.5 2071-2100
+```{r vb6}
+valueBox("RCP 2.6 vs RCP 8.5 2071-2100", icon = "fa-clock", 
+         href="http://sdi.eurac.edu/slider/clirsnow_future_rcp26_rcp85_2071_2100.html")
+```
+
+***
+The maps show different scenarios of future snow cover duration (SCD) across the Alps.
+
+Annual Mean Snow Cover Duration (SCD) RCP 2.6 vs RCP 8.5 from 2071 to 2100. The value represents snow covered days [0-365].
+
+RCP: 
+A Representative Concentration Pathway (RCP) is a greenhouse gas concentration (not emissions) trajectory adopted by the IPCC. 
+
+- RCP 2.6: RCP 2.6 is a "very stringent" pathway. According to the IPCC, RCP 2.6 requires that carbon dioxide emissions start declining by 2020 and go to zero by 2100.
+- RCP 8.5: In this scenario emissions continue to rise throughout the 21st century. It is considered the worst case scenario.
+
+
 
