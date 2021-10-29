@@ -1,0 +1,29 @@
+---
+title: "CliRSnow"
+output: 
+  flexdashboard::flex_dashboard:
+    self_contained: false
+    lib_dir: libs
+    theme: bootstrap
+    orientation: rows
+    vertical_layout: fill
+    social: menu
+    source: embed
+    logo: media/logo_72x48.png
+    navbar:
+      - { title: "Back to main dashboard", href: "./", align: right }
+      - { title: "Back to CliRSnow homepage", href: "/", align: right }
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(leaflet)
+```
+
+
+## Row
+
+Update in progress...
+
+
+

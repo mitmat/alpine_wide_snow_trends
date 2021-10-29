@@ -2,7 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
-data/
 fig/
 *.Rout
 manual-qc/
+R/18-dashboard-v3/libs/

@@ -1,0 +1,86 @@
+---
+title: "CliRSnow"
+output: 
+  flexdashboard::flex_dashboard:
+    storyboard: true
+    self_contained: false
+    lib_dir: libs
+    theme: bootstrap
+    orientation: rows
+    vertical_layout: fill
+    social: menu
+    source: embed
+    logo: media/logo_72x48.png
+    navbar:
+      - { title: "Back to main dashboard", href: "./index.html", align: right }
+      - { title: "Back to CliRSnow homepage", href: "/", align: right }
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(leaflet)
+
+library(sf)
+library(ggplot2)
+```
+
+
+
+
+
+### Frame 1
+
+```{r }
+
+dat_meta_cluster <- readRDS(here::here("data/meta-with-cluster-01.rds"))
+sf_meta <- st_as_sf(dat_meta_cluster,
+                    coords = c("Longitude", "Latitude"),
+                    crs = 4326)
+sf_meta <- sf_meta %>% dplyr::mutate(Region = cluster_fct)
+# sf_meta <- sf_meta %>% dplyr::mutate(lbl = paste0(Name, " (", Elevation, "m)"))
+
+gg <- ggplot()+
+  # borders()+
+  geom_sf(data = sf_meta, aes(colour = Region, shape = Region))+
+  xlab(NULL)+ylab(NULL)+
+  scale_x_continuous(labels = function(x) paste0(x, "° E"))+
+  scale_y_continuous(labels = function(x) paste0(x, "° N"))+
+  coord_sf(xlim = range(dat_meta_cluster$Longitude), ylim = range(dat_meta_cluster$Latitude))+
+  theme_bw()+
+  # theme(# legend.position = c(0.65, 0.15),
+  #   legend.position = "top",
+  #   # legend.title = element_blank(),
+  #   legend.background = element_rect(colour = "grey"),
+  #   # legend.direction = "horizontal",
+  #   legend.box.just = "right")+
+  scale_shape("")+
+  scale_color_brewer("", palette = "Set1")+
+  ggtitle("Regionalization of snow depth stations")
+
+
+plotly::ggplotly(gg, tooltip = "shape")
+
+```
+
+*** 
+
+Statistical grouping of the station observations of snow depth:
+
+An automatic procedure (clustering) based solely on daily snow depth observations from December to April. No information on location or elevation entered into the clustering procedure, so the resulting groups are based solely on the similarity in daily snow depths across 30 years (1981-2010). 
+
+Note that because it is a fully automatic procedure, no relabeling was performed, and some stations might seem to belong to the "wrong" group, but actually they have no similar neighbors in their or other clusters.
+
+
+### Frame 2 
+
+```{r}
+```
+
+*** 
+
+Some commentary about Frame 2.
+
+
+
+
+

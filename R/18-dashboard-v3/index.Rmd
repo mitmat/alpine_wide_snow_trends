@@ -1,0 +1,110 @@
+---
+title: "CliRSnow"
+output: 
+  flexdashboard::flex_dashboard:
+    self_contained: false
+    lib_dir: libs
+    theme: bootstrap
+    orientation: rows
+    vertical_layout: fill
+    social: menu
+    source: embed
+    logo: media/logo_72x48.png
+    navbar:
+      - { title: "Back to CliRSnow homepage", href: "/", align: right }
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(leaflet)
+```
+
+```{r, include=TRUE}
+htmltools::tagList(fontawesome::fa_html_dependency())
+```
+
+
+
+## Row 1
+
+
+
+### Stations
+
+```{r}
+valueBox(2149, icon = "fa-snowflake")
+```
+
+### Years of hi-res EO data
+
+```{r}
+valueBox(20, icon = "fas fa-satellite")
+```
+
+### Climate model simulations
+
+```{r}
+valueBox(27, icon = "fas fa-cloud-sun-rain")
+```
+
+### Future scenarios
+
+```{r}
+valueBox(2, icon = "fa-map-signs")
+```
+
+
+## Row 2
+
+
+### Area of interest: The European Alps
+
+```{r}
+# leaflet() %>% 
+#   addProviderTiles("Esri.NatGeoWorldMap") %>% 
+#   fitBounds(4, 44, 18, 49)
+
+sf_aoi <- data.frame(lon = c(4, 4, 19, 19),
+           lat = c(43, 49, 49, 43)) %>% 
+  sf::st_as_sf(coords = c("lon", "lat"),
+           crs = 4326) %>% 
+  dplyr::summarise(geometry = sf::st_combine(geometry)) %>%
+  sf::st_cast("POLYGON")
+
+leaflet(sf_aoi) %>%
+  addProviderTiles("Esri.NatGeoWorldMap") %>% 
+  addPolygons()
+
+```
+
+### Detailed results
+
+
+#### How the topography of the Alps influences snow patterns
+
+
+Statistical analysis of in-situ snow depth measurements and satellite observations.
+
+<a href="./dash-climatology.html" class="btn btn-primary" role="button">Snow climatology</a>
+
+<br>
+
+#### How snow depth has changed in the past
+
+
+Long-term trends in snow depth and related parameters from in-situ station observations.
+
+<a href="./dash-past.html" class="btn btn-primary" role="button">Past trends 1971-2019</a>
+
+
+<br>
+
+
+#### How snow cover might change in the future
+
+
+Future projections of snow cover under different greenhouse gas concentration scenarios, from bias-correction and downscaling of snow cover fraction from regional climate models with Earth Observation (EO).
+
+<a href="./dash-future.html" class="btn btn-primary" role="button">Snow cover duration 2000-2100</a>
+
+
