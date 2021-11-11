@@ -2,7 +2,7 @@
 title: "CliRSnow"
 output: 
   flexdashboard::flex_dashboard:
-    storyboard: true
+    storyboard: false
     self_contained: false
     lib_dir: libs
     theme: bootstrap
@@ -19,28 +19,50 @@ output:
 ```{r setup, include=FALSE}
 library(flexdashboard)
 library(leaflet)
+library(leafsync)
+library(mapview)
 
+library(raster)
 library(sf)
+library(stars)
 library(ggplot2)
+library(dplyr)
 ```
 
 
 
 
 
-### Frame 1
+# In-situ snow depth
 
-```{r }
+## Row
+
+### Regionalization of snow depth stations
+
+```{r stn-plotly}
 
 dat_meta_cluster <- readRDS(here::here("data/meta-with-cluster-01.rds"))
 sf_meta <- st_as_sf(dat_meta_cluster,
                     coords = c("Longitude", "Latitude"),
                     crs = 4326)
-sf_meta <- sf_meta %>% dplyr::mutate(Region = cluster_fct)
-# sf_meta <- sf_meta %>% dplyr::mutate(lbl = paste0(Name, " (", Elevation, "m)"))
+sf_meta <- sf_meta %>% mutate(Region = cluster_fct)
+# sf_meta <- sf_meta %>% mutate(lbl = paste0(Name, " (", Elevation, "m)"))
+
+
+sf_borders <- st_as_sf(maps::map("world", plot = F, fill = T)) %>% 
+  dplyr::filter(ID %in% c("Austria", "France", "Germany",
+                          "Italy", "Slovenia", "Switzerland",
+                          "Croatia", "Hungary", "Czech Republic",
+                          "Slovakia"))
+
+sf_borders2 <- sf_borders %>% 
+  mutate(geom = st_cast(geom, "MULTILINESTRING")) %>% 
+  # st_crop(sf_meta)
+  st_crop(c(xmin = 4.5, ymin = 42.9, xmax = 18, ymax = 49.5))
 
 gg <- ggplot()+
   # borders()+
+  geom_sf(data = sf_borders2)+
   geom_sf(data = sf_meta, aes(colour = Region, shape = Region))+
   xlab(NULL)+ylab(NULL)+
   scale_x_continuous(labels = function(x) paste0(x, "° E"))+
@@ -54,33 +76,87 @@ gg <- ggplot()+
   #   # legend.direction = "horizontal",
   #   legend.box.just = "right")+
   scale_shape("")+
-  scale_color_brewer("", palette = "Set1")+
-  ggtitle("Regionalization of snow depth stations")
+  scale_color_brewer("", palette = "Set1")
+  # ggtitle("Regionalization of snow depth stations")
 
 
 plotly::ggplotly(gg, tooltip = "shape")
 
 ```
 
-*** 
-
-Statistical grouping of the station observations of snow depth:
+### Statistical grouping of the station observations of snow depth {data-width=300}
 
 An automatic procedure (clustering) based solely on daily snow depth observations from December to April. No information on location or elevation entered into the clustering procedure, so the resulting groups are based solely on the similarity in daily snow depths across 30 years (1981-2010). 
 
 Note that because it is a fully automatic procedure, no relabeling was performed, and some stations might seem to belong to the "wrong" group, but actually they have no similar neighbors in their or other clusters.
 
+The grouping reflects the major influences on snow cover, first the **elevation**, followed by  **north-south gradients** and **east-west gradients**.
 
-### Frame 2 
+
+# EO SCD
+
+
+## Row {data-height=300}
+
+### Snow cover duration (SCD) from Earth Observation (EO)
+
+Average number of days with snow on the ground for the period 2000-2020, as observed by [MODIS](https://en.wikipedia.org/wiki/Moderate_Resolution_Imaging_Spectroradiometer) on board the Terra and Aqua satellites. 
+
+The anomalies of SCD are relative to elevation. They are calculated by taking each pixel SCD (snow cover duration) minus the areal average SCD over the whole domain at similar elevation (+-50m).
+
+The snow cover duration map shows the main impact on snow cover, namely **elevation**, while the anomalies highlight the **north-south and east-west gradients**, after having accounted for elevation.
+
+
+
+
+## Row {data-height=800}
+
 
 ```{r}
+
+rr_scd_1km <- raster(here::here("data/modis_scd_1km_webmerc.tif"))
+rr_scd_anom_1km <- raster(here::here("data/modis_scd_anom_1km_webmerc.tif"))
+
+pal_scd <- colorNumeric(scico::scico(palette = "davos", 10),
+                        c(0, 366), 
+                        na.color = NA)
+
+
+max_diff <- max(abs(rr_scd_anom_1km[]), na.rm = T)
+
+pal_scd_anom <- colorNumeric(scico::scico(palette = "vik", 11),
+                             c(-max_diff, max_diff), 
+                             na.color = NA,
+                             reverse = T)
+
+lf_scd <-
+leaflet() %>% 
+  addProviderTiles("CartoDB.Positron") %>% 
+  addRasterImage(rr_scd_1km, 
+                 opacity = 0.8,
+                 colors = pal_scd,
+                 project = F) %>% 
+  addLegend(pal = pal_scd, 
+            values = values(rr_scd_1km),
+            opacity = 0.8,
+            title = "SCD [days]")
+
+
+lf_scd_anom <-
+leaflet() %>% 
+  addProviderTiles("CartoDB.Positron") %>% 
+  addRasterImage(rr_scd_anom_1km, 
+                 opacity = 0.8,
+                 colors = pal_scd_anom,
+                 project = F) %>% 
+  addLegend(pal = pal_scd_anom, 
+            values = values(rr_scd_anom_1km),
+            opacity = 0.8,
+            title = "anomalies [days]")
+
+
+sync(lf_scd, lf_scd_anom)
+
 ```
-
-*** 
-
-Some commentary about Frame 2.
-
-
-
 
 

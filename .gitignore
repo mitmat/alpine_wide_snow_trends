@@ -6,3 +6,4 @@ fig/
 *.Rout
 manual-qc/
 R/18-dashboard-v3/libs/
+data-raw/

@@ -11,7 +11,7 @@ output:
     source: embed
     logo: media/logo_72x48.png
     navbar:
-      - { title: "Back to main dashboard", href: "./", align: right }
+      - { title: "Back to main dashboard", href: "./index.html", align: right }
       - { title: "Back to CliRSnow homepage", href: "/", align: right }
 ---
 
