@@ -160,3 +160,131 @@ sync(lf_scd, lf_scd_anom)
 ```
 
 
+# Explore climatic boundaries
+
+
+## Row {data-height=200}
+
+### Explore climatic boundaries and snow cover regions
+
+
+The climatic boundaries have been taken from the [HISTALP](http://www.zamg.ac.at/histalp/project/maps/gar_reg.php) project and reflect the leading climatological subregions in the European Alps. 
+
+
+The **orography** of the Alps manifests itself in **climatological boundaries**. Especially important for snow cover are the **temperature and precipitation patterns**. These boundaries are **reflected in the snow cover** regions, both based on in-situ snow depth as well as remotely sensed snow cover duration.
+
+
+### {data-width=150}
+
+```{r}
+valueBox("Toggle layers!", icon = "fa-level-down-alt")
+```
+
+
+## Row {data-height=800}
+
+
+### Interactive map
+
+
+```{r}
+
+sf_histalp <- readRDS(here::here("data/sf_histalp_extended.rds"))
+load(here::here("data/viz_past.Rdata"))
+
+
+sf_lines_crs <- sf_histalp[c(1,3), ] %>% 
+  st_cast("MULTILINESTRING") %>%
+  summarise(geometry = st_combine(geometry)) %>% 
+  st_crop(c(xmin = 3, ymin = 42.2, xmax = 20, ymax = 49)) 
+
+
+sf_lines_t <- histalp_reg_t[c(2,3), ]%>%
+  st_cast("MULTILINESTRING") %>%
+  summarise(geometry = st_combine(geometry)) %>% 
+  st_crop(c(xmin = 4.1, ymin = 43.1, xmax = 19, ymax = 48.7))
+
+
+sf_lines_p <- histalp_reg_p[c(2,3), ]%>%
+  st_cast("MULTILINESTRING") %>%
+  summarise(geometry = st_combine(geometry)) %>% 
+  st_crop(c(xmin = 4.1, ymin = 43.1, xmax = 19, ymax = 48.7)) 
+
+
+leaflet() %>% 
+  addProviderTiles("CartoDB.Positron", group = "CartoDB") %>% 
+  addProviderTiles("Esri.WorldTopoMap", group = "Topomap") %>% 
+  addProviderTiles("Esri.WorldImagery", group = "WorldImagery") %>% 
+  
+  addRasterImage(rr_scd_1km,
+                 opacity = 1,
+                 colors = pal_scd,
+                 project = F,
+                 group = "SCD") %>%
+  # addLegend(pal = pal_scd,
+  #           values = values(rr_scd_1km),
+  #           opacity = 0.8,
+  #           title = "SCD [days]",
+  #           position = "topleft") %>%
+
+  addRasterImage(rr_scd_anom_1km,
+                 opacity = 1,
+                 colors = pal_scd_anom,
+                 project = F,
+                 group = "SCD anomalies") %>%
+  # addLegend(pal = pal_scd_anom,
+  #           values = values(rr_scd_anom_1km),
+  #           opacity = 0.8,
+  #           title = "SCD anomalies [days]",
+  #           position = "topleft") %>%
+
+  addCircleMarkers(data = sf_meta,
+                   stroke = F,
+                   fillOpacity = 0.8,
+                   radius = 5,
+                   color = ~ mv5_leaf_col(Region),
+                   group = "In-situ snow depth regions") %>% 
+  addLegend(pal = mv5_leaf_col, 
+            values = sf_meta$Region,
+            opacity = 0.8,
+            title = "In-situ snow depth regions",
+            position = "bottomleft") %>% 
+
+
+  addPolylines(data = sf_lines_crs,
+               color = "black",
+               opacity = 0.8,
+               group = "HISTALP Summary") %>% 
+  addPolylines(data = sf_lines_t,
+               color = "#b30000",
+               opacity = 0.8,
+               group = "HISTALP Temperature") %>% 
+  addPolylines(data = sf_lines_p,
+               color = "#045a8d",
+               opacity = 0.8,
+               group = "HISTALP Precipitation") %>% 
+  addLegend(colors = c("black",
+                       "#b30000",
+                       "#045a8d"),
+            labels = c("summary climatic boundaries",
+                       "temperature boundaries",
+                       "precipitation boundaries"),
+            opacity = 0.8,
+            title = "HISTALP",
+            position = "bottomleft") %>% 
+  
+  addLayersControl(baseGroups = c("CartoDB", "Topomap", "WorldImagery"),
+                   overlayGroups = c("SCD", "SCD anomalies",
+                                     "In-situ snow depth regions",
+                                     "HISTALP Summary", 
+                                     "HISTALP Temperature", 
+                                     "HISTALP Precipitation"),
+                   position = "topright",
+                   options = layersControlOptions(collapsed = FALSE)) %>% 
+  hideGroup("SCD") %>%
+  hideGroup("SCD anomalies")
+
+```
+
+
+

@@ -264,3 +264,88 @@ leaflet() %>%
 
 
 sync(lf_scd, lf_scd_anom)
+
+
+
+# explore boundaries ------------------------------------------------------
+
+
+leaflet() %>% 
+  addProviderTiles("CartoDB.Positron", group = "CartoDB") %>% 
+  addProviderTiles("Esri.WorldTopoMap", group = "Topomap") %>% 
+  addProviderTiles("Esri.WorldImagery", group = "WorldImagery") %>% 
+  
+  addRasterImage(rr_scd_1km,
+                 opacity = 0.8,
+                 colors = pal_scd,
+                 project = F,
+                 group = "SCD") %>%
+  addLegend(pal = pal_scd,
+            values = values(rr_scd_1km),
+            opacity = 0.8,
+            title = "SCD [days]",
+            position = "topleft") %>%
+
+  addRasterImage(rr_scd_anom_1km,
+                 opacity = 0.8,
+                 colors = pal_scd_anom,
+                 project = F,
+                 group = "SCD anomalies") %>%
+  addLegend(pal = pal_scd_anom,
+            values = values(rr_scd_anom_1km),
+            opacity = 0.8,
+            title = "SCD anomalies [days]",
+            position = "topleft") %>%
+
+  addCircleMarkers(data = sf_meta,
+                   stroke = F,
+                   fillOpacity = 0.8,
+                   radius = 5,
+                   color = ~ mv5_leaf_col(Region),
+                   group = "In-situ snow depth regions") %>% 
+  addLegend(pal = mv5_leaf_col, 
+            values = sf_meta$Region,
+            opacity = 0.8,
+            title = "In-situ snow depth regions",
+            position = "bottomleft") %>% 
+
+
+  addPolylines(data = sf_lines_crs,
+               color = "black",
+               opacity = 0.8,
+               group = "HISTALP Summary") %>% 
+  addPolylines(data = sf_lines_t,
+               color = "#b30000",
+               opacity = 0.8,
+               group = "HISTALP Temperature") %>% 
+  addPolylines(data = sf_lines_p,
+               color = "#045a8d",
+               opacity = 0.8,
+               group = "HISTALP Precipitation") %>% 
+  addLegend(colors = c("black",
+                       "#b30000",
+                       "#045a8d"),
+            labels = c("summary climatic boundaries",
+                       "temperature boundaries",
+                       "precipitation boundaries"),
+            opacity = 0.8,
+            title = "HISTALP",
+            position = "bottomleft") %>% 
+  
+  addLayersControl(baseGroups = c("CartoDB", "Topomap", "WorldImagery"),
+                   overlayGroups = c("SCD", 
+                                     "SCD anomalies",
+                                     "In-situ snow depth regions",
+                                     "HISTALP Summary", 
+                                     "HISTALP Temperature", 
+                                     "HISTALP Precipitation"),
+                   position = "topright",
+                   options = layersControlOptions(collapsed = FALSE)) %>% 
+  hideGroup("SCD") %>%
+  hideGroup("SCD anomalies")
+
+
+
+
+
+
