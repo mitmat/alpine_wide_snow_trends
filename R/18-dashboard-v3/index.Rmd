@@ -9,7 +9,7 @@ output:
     vertical_layout: fill
     social: menu
     source: embed
-    logo: media/logo_72x48.png
+    logo: other/logo_72x48.png
     navbar:
       - { title: "Back to CliRSnow homepage", href: "/", align: right }
 ---
@@ -103,7 +103,7 @@ Long-term trends in snow depth and related parameters from in-situ station obser
 #### How snow cover might change in the future
 
 
-Future projections of snow cover under different greenhouse gas concentration scenarios, from bias-correction and downscaling of snow cover fraction from regional climate models with Earth Observation (EO).
+Future projections of snow cover fraction under different greenhouse gas concentration scenarios. 
 
 <a href="./dash-future.html" class="btn btn-primary" role="button">Snow cover duration 2000-2100</a>
 
