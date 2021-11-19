@@ -345,6 +345,115 @@ leaflet() %>%
   hideGroup("SCD anomalies")
 
 
+# highcharter clim stn try ----------------------------------------------------
+
+# geojs_borders2 <- geojsonsf::sf_geojson(sf_borders2)
+
+st_write(sf_borders2, "data/borders.geojson")
+# geojs_borders <- geojsonio::geojson_read("data/borders.geojson")
+geojs1 <- jsonlite::fromJSON("data/borders.geojson")
+
+geojs_borders <- jsonlite::fromJSON("data/borders.geojson", simplifyVector = FALSE) %>% 
+  geojsonio::as.json()
+
+highchart(type = "map") %>% 
+  hc_chart(backgroundColor = "#161C20") %>% 
+  # hc_add_series(mapData = geojs_borders)
+  hc_add_series(mapData = geojs_borders,
+                type = "mapline",
+                lineColor = "#252525",
+                lineWidth = 2)
+
+highchart(type = "map") %>% 
+  # hc_add_series(mapData = geojs_borders) %>% 
+  hc_add_series(data = dat_meta_clust[1:100, ],
+                type = "mappoint")
+
+hcmap() %>% 
+  # hc_add_series(mapData = geojs_borders) %>% 
+  hc_add_series(data = dat_meta_clust[1:100, .(lat = Latitude, lon = Longitude, Name, cluster_fct)],
+                type = "mappoint") %>% 
+  hc_mapNavigation(enabled = TRUE)
+
+
+
+
+# highcharter clim stn ok ----------------------------------------------------
+
+cols_cluster <- setNames(scales::brewer_pal(palette = "Set1")(5),
+                         c("NW", "NE", "North & high Alpine", "South & high Alpine", "SE"))
+
+st_write(sf_borders2, "data/borders.geojson")
+
+sf_meta <- sf_meta %>% mutate(color = cols_cluster[cluster_fct])
+st_write(sf_meta, "data/meta.geojson")
+
+geojs_borders <- jsonlite::fromJSON("data/borders.geojson", simplifyVector = FALSE) %>% 
+  geojsonio::as.json()
+
+geojs_meta <- jsonlite::fromJSON("data/meta.geojson", simplifyVector = FALSE) %>% 
+  geojsonio::as.json()
+
+highchart(type = "map") %>% 
+  # hc_chart(backgroundColor = "#161C20") %>% 
+  hc_add_series(mapData = geojs_borders,
+                type = "mapline",
+                lineColor = "#252525",
+                lineWidth = 2) %>%
+  hc_add_series(data = geojs_meta,
+                type = "mappoint",
+                # hcaes = hcaes(color = cluster_fct),
+                # colorKey = "cluster_fct",
+                tooltip = list(pointFormat = "{point.properties.color}")) %>% 
+  hc_mapNavigation(enabled = TRUE)
+
+
+
+highchart(type = "map") %>% 
+  # hc_chart(backgroundColor = "#161C20") %>% 
+  hc_add_series(mapData = geojs_borders,
+                type = "mapline",
+                lineColor = "#252525",
+                lineWidth = 2) %>%
+  hc_add_series(data = as_tibble(sf_meta),
+                type = "point",
+                # hcaes = hcaes(color = cluster_fct),
+                # colorKey = "cluster_fct",
+                tooltip = list(pointFormat = "{point.properties.color}")) %>% 
+  hc_mapNavigation(enabled = TRUE)
+
+highchart() %>% 
+  hc_add_series(dat_meta_cluster,
+                "point",
+                hcaes(Longitude, Latitude))
+
+# mountain elev background ------------------------------------------------
+
+library(highcharter)
+
+tbl_elev <- readRDS("data/mountain-background.rds")
+tbl_elev_sub <- tbl_elev[170: 500, ] %>% 
+  dplyr::mutate(elev_scaled = ifelse(elev_rollmean > 1000,
+                                     elev_rollmean/max(elev_rollmean)*4500,
+                                     elev_rollmean))
+
+
+
+hchart(tbl_elev_sub, 
+       "line",
+       hcaes(ii, elev_scaled))
+
+highchart() %>% 
+  hc_add_series(tbl_elev_sub,
+                "line",
+                hcaes(ii, elev_scaled),
+                name = "Mountain")
+
+
+
+
+
+# EOF ---------------------------------------------------------------------
 
 
 
