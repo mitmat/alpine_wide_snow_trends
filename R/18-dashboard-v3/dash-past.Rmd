@@ -21,12 +21,14 @@ library(flexdashboard)
 library(highcharter)
 
 library(dplyr)
+
+div_text_color <- function(text, color){
+  paste0("<div style='font-size:14px;color:", color, ";'>", text, "</div>")
+}
 ```
 
 
 # Overview
-
-## Row {.tabset}
 
 
 ```{r overview-data-prep, include=FALSE}
@@ -41,7 +43,7 @@ tbl_elev_sub <- tbl_elev[170: 450, ] %>%
 load(here::here("data/trends.Rdata"))
 
 tbl_xy_pos <- tribble(
-  ~x, ~y, ~ns, ~elev_range, 
+  ~x, ~y, ~ns_fct, ~elev_range, 
   200, 500,  "North", "0-1000m",
   420, 500,  "South", "0-1000m",
   220, 1500,  "North", "1000-2000m",
@@ -52,27 +54,80 @@ tbl_xy_pos <- tribble(
   320, 3500,  "South", ">3000m"
 )
 
-tbl_rel <- dat_table_rel %>% 
+# tbl_3000 <- dat_trends_rel %>% 
+#   group_by(ns_fct, variable) %>% 
+#   summarise(nn = 0, mean = 0, elev_range = ">3000m")
+
+tbl_3000_2 <- dat_trends_rel %>% 
+  group_by(ns_fct, variable) %>% 
+  summarise(nn_abs = 0, nn_rel = 0, value_abs = 0, value_rel = 0, elev_range = ">3000m")
+
+# 
+# tbl_rel <-
+#   dat_trends_rel %>% 
+#   tidyr::separate(elev_fct, c(NA, "elev_min", "elev_max", NA)) %>% 
+#   mutate(elev_range = paste0(elev_min, "-", elev_max, "m")) %>%
+#   rename(value = mean) %>% 
+#   bind_rows(tbl_3000) %>% 
+#   left_join(tbl_xy_pos) %>% 
+#   mutate(label = if_else(y < 3000, sprintf("%+.1f%%", value), "?"),
+#          value_size = if_else(y < 3000, abs(value), 0.1),
+#          label_html = if_else(y > 3000, 
+#                               div_text_color(label, "#252525"),
+#                               if_else(value < 0, 
+#                                       div_text_color(label, "#d7301f"),
+#                                       div_text_color(label, "#377eb8"))))
+# 
+# 
+# tbl_abs <-
+#   dat_trends_abs %>% 
+#   tidyr::separate(elev_fct, c(NA, "elev_min", "elev_max", NA)) %>% 
+#   mutate(elev_range = paste0(elev_min, "-", elev_max, "m")) %>%
+#   rename(value = mean) %>% 
+#   bind_rows(tbl_3000) %>% 
+#   left_join(tbl_xy_pos) %>% 
+#   mutate(label = if_else(y > 3000, 
+#                          "?",
+#                          if_else(startsWith(variable, "SCD"),
+#                                  sprintf("%+.0f days", value),
+#                                  sprintf("%+.1f cm", value))),
+#          value_size = if_else(y < 3000, abs(value), 0.1),
+#          label_html = if_else(y > 3000, 
+#                               div_text_color(label, "#252525"),
+#                               if_else(value < 0, 
+#                                       div_text_color(label, "#d7301f"),
+#                                       div_text_color(label, "#377eb8"))))
+# 
+
+
+dat_trends <- left_join(
+  dat_trends_abs %>% select(elev_fct, ns_fct, variable, value_abs = mean, nn_abs = nn),
+  dat_trends_rel %>% select(elev_fct, ns_fct, variable, value_rel = mean, nn_rel = nn)    
+)
+
+
+tbl_absrel <-
+dat_trends %>% 
+  tidyr::separate(elev_fct, c(NA, "elev_min", "elev_max", NA)) %>% 
+  mutate(elev_range = paste0(elev_min, "-", elev_max, "m")) %>%
+  bind_rows(tbl_3000_2) %>% 
   left_join(tbl_xy_pos) %>% 
-   mutate(label = if_else(y < 3000, sprintf("%+.1f%%", value*49/10), "?"),
-         value_size = if_else(y < 3000, abs(value), 0.1),
+  mutate(label = if_else(y > 3000, 
+                         "?",
+                         if_else(startsWith(variable, "SCD"),
+                                 sprintf("%+.0f days (%+.1f%%)", value_abs, value_rel),
+                                 sprintf("%+.1f cm (%+.1f%%)", value_abs, value_rel))),
+         value_size = if_else(y < 3000, abs(value_rel), 0.1),
+         nn_min = pmin(nn_abs, nn_rel),
          label_html = if_else(y > 3000, 
                               div_text_color(label, "#252525"),
-                              if_else(value < 0, 
+                              if_else(value_rel < 0, 
                                       div_text_color(label, "#d7301f"),
                                       div_text_color(label, "#377eb8"))))
 
-
-div_text_color <- function(text, color){
-  paste0("<div style='font-size:14px;color:", color, ";'>", text, "</div>")
-}
-
-
-
-
-
-x <- c("Elevation", "Change")
-y <- sprintf("{point.%s:s}", c("elev_range", "label"))
+x <- c("Elevation", "Change", "Stations")
+# y <- sprintf("{point.%s:s}", c("elev_range", "label"))
+y <- c("{point.elev_range:s}", "{point.label:s}", "{point.nn_min:f}")
 
 tltip <- tooltip_table(x, y)
 
@@ -82,12 +137,14 @@ cols <- c("#969696", "#1f78b4", "#33a02c")
 
 
 
-### DJF HS
+
+## Row 
+
+
+
+### HS DJF
 
 ```{r}
-
-
-tbl_djf_rel <- dat_trends_rel %>% filter(variable == "meanHS_DJF")
 
 
 highchart() %>% 
@@ -100,9 +157,9 @@ highchart() %>%
                 enableMouseTracking = F,
                 showInLegend = F,
                 states = list(inactive = list(opacity = 1))) %>% 
-  hc_add_series(tbl_djf_rel,
+  hc_add_series(tbl_absrel %>% filter(variable == "meanHS_DJF"),
                 "scatter",
-                hcaes(x, y, group = ns, size = value_size),
+                hcaes(x, y, group = ns_fct, size = value_size),
                 dataLabels = list(enabled = T,
                                   align = "left",
                                   x = 20,
@@ -129,7 +186,65 @@ highchart() %>%
            endOnTick = F) %>% 
   hc_xAxis(visible = F) %>% 
   hc_title(text = "Change in average winter snow depth 1971-2019") %>% 
-  hc_subtitle(text = "Winter is December - February, changes averaged for 1000 m elevation bands") %>% 
+  hc_subtitle(text = "December to February") %>%
+  hc_caption(text = strwrap(width = 1e6, 
+                            "Changes are determined from linear regressions over the whole period, 
+                            and averaged over all stations in 1000 m elevation bands. 
+                            Over 3000 m, no stations with such long records exist.")) 
+
+
+
+```
+
+
+
+### HS MAM
+
+
+
+```{r}
+
+
+highchart() %>% 
+  # hc_add_theme(hc_theme_bloom()) %>% 
+  hc_add_theme(hc_theme_hcrt()) %>% 
+  hc_add_series(tbl_elev_sub,
+                "line",
+                hcaes(ii, elev_scaled),
+                name = "Mountain",
+                enableMouseTracking = F,
+                showInLegend = F,
+                states = list(inactive = list(opacity = 1))) %>% 
+  hc_add_series(tbl_absrel %>% filter(variable == "meanHS_MAM"),
+                "scatter",
+                hcaes(x, y, group = ns_fct, size = value_size),
+                dataLabels = list(enabled = T,
+                                  align = "left",
+                                  x = 20,
+                                  useHTML = T,
+                                  format = "{point.label_html}")) %>% 
+  hc_colors(cols) %>%
+  hc_legend(align = "center",
+            verticalAlign = "top",
+            x = -30) %>%
+  hc_tooltip(useHTML = T,
+             shape = "callout", # or rect
+             pointFormat = tltip,
+             headerFormat = "") %>% 
+  hc_yAxis(title = list(text = "Elevation",
+                        rotation = 0,
+                        align = "high",
+                        offset = 10,
+                        y = 10),
+           # breaks = c(0:3*1000),
+           labels = list(format = "{value:f} m"),
+           min = 0, max = 4700,
+           # tickAmount = 2,
+           tickInterval = 1000,
+           endOnTick = F) %>% 
+  hc_xAxis(visible = F) %>% 
+  hc_title(text = "Change in average spring snow depth 1971-2019") %>% 
+  hc_subtitle(text = "March to May") %>%
   hc_caption(text = strwrap(width = 1e6, 
                             "Changes are determined from linear regressions over the whole period, 
                             and averaged over all stations in 1000 m elevation bands. 
@@ -142,21 +257,134 @@ highchart() %>%
 
 
 
-### MAM HS
-
-
-Update in progress...
 
 
 
 
 
+## Row
 
-# Single stn trends
 
 
-Update in progress...
+### SCD NDJF
 
+```{r}
+
+
+highchart() %>% 
+  # hc_add_theme(hc_theme_bloom()) %>% 
+  hc_add_theme(hc_theme_hcrt()) %>% 
+  hc_add_series(tbl_elev_sub,
+                "line",
+                hcaes(ii, elev_scaled),
+                name = "Mountain",
+                enableMouseTracking = F,
+                showInLegend = F,
+                states = list(inactive = list(opacity = 1))) %>% 
+  hc_add_series(tbl_absrel %>% filter(variable == "SCD_NDJF"),
+                "scatter",
+                hcaes(x, y, group = ns_fct, size = value_size),
+                dataLabels = list(enabled = T,
+                                  align = "left",
+                                  x = 20,
+                                  useHTML = T,
+                                  format = "{point.label_html}")) %>% 
+  hc_colors(cols) %>%
+  hc_legend(align = "center",
+            verticalAlign = "top",
+            x = -30) %>%
+  hc_tooltip(useHTML = T,
+             shape = "callout", # or rect
+             pointFormat = tltip,
+             headerFormat = "") %>% 
+  hc_yAxis(title = list(text = "Elevation",
+                        rotation = 0,
+                        align = "high",
+                        offset = 10,
+                        y = 10),
+           # breaks = c(0:3*1000),
+           labels = list(format = "{value:f} m"),
+           min = 0, max = 4700,
+           # tickAmount = 2,
+           tickInterval = 1000,
+           endOnTick = F) %>% 
+  hc_xAxis(visible = F) %>% 
+  hc_title(text = "Change in winter snow cover duration 1971-2019") %>% 
+  hc_subtitle(text = "November to February") %>%
+  hc_caption(text = strwrap(width = 1e6, 
+                            "Snow cover duration is days with snow depth > 1cm. Changes are determined from linear regressions over the whole period, 
+                            and averaged over all stations in 1000 m elevation bands. 
+                            Over 3000 m, no stations with such long records exist.")) 
+
+
+
+```
+
+
+
+
+### SCD MAM
+
+
+
+```{r}
+
+
+highchart() %>% 
+  # hc_add_theme(hc_theme_bloom()) %>% 
+  hc_add_theme(hc_theme_hcrt()) %>% 
+  hc_add_series(tbl_elev_sub,
+                "line",
+                hcaes(ii, elev_scaled),
+                name = "Mountain",
+                enableMouseTracking = F,
+                showInLegend = F,
+                states = list(inactive = list(opacity = 1))) %>% 
+  hc_add_series(tbl_absrel %>% filter(variable == "SCD_MAM"),
+                "scatter",
+                hcaes(x, y, group = ns_fct, size = value_size),
+                dataLabels = list(enabled = T,
+                                  align = "left",
+                                  x = 20,
+                                  useHTML = T,
+                                  format = "{point.label_html}")) %>% 
+  hc_colors(cols) %>%
+  hc_legend(align = "center",
+            verticalAlign = "top",
+            x = -30) %>%
+  hc_tooltip(useHTML = T,
+             shape = "callout", # or rect
+             pointFormat = tltip,
+             headerFormat = "") %>% 
+  hc_yAxis(title = list(text = "Elevation",
+                        rotation = 0,
+                        align = "high",
+                        offset = 10,
+                        y = 10),
+           # breaks = c(0:3*1000),
+           labels = list(format = "{value:f} m"),
+           min = 0, max = 4700,
+           # tickAmount = 2,
+           tickInterval = 1000,
+           endOnTick = F) %>% 
+  hc_xAxis(visible = F) %>% 
+  hc_title(text = "Change in spring snow cover duration 1971-2019") %>% 
+  hc_subtitle(text = "March to May") %>%
+  hc_caption(text = strwrap(width = 1e6, 
+                            "Snow cover duration is days with snow depth > 1cm. Changes are determined from linear regressions over the whole period, 
+                            and averaged over all stations in 1000 m elevation bands. 
+                            Over 3000 m, no stations with such long records exist.")) 
+
+
+
+```
+
+
+
+
+
+
+# single stn trends
 
 
 
