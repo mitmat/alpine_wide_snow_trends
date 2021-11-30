@@ -427,12 +427,55 @@ highchart() %>%
                 "point",
                 hcaes(Longitude, Latitude))
 
-# mountain elev background ------------------------------------------------
+
+# echarts stn -------------------------------------------------------------
+
+library(echarts4r)
+
+
+
+dat_meta_cluster %>% 
+  group_by(cluster_fct) %>% 
+  e_chart(Longitude) %>% 
+  e_geo(roam = T,
+        boundingCoords = list(c(4.5, 49.7), c(18, 43))) %>%
+  e_scatter(Latitude,
+            coord_system = "geo") 
+  
+dat_meta_cluster %>% 
+  group_by(cluster_fct) %>% 
+  e_chart(Longitude) %>% 
+  e_geo(roam = T,
+        # tooltip = list(show = F),
+        boundingCoords = list(c(4.5, 49.7), c(18, 43))) %>%
+  e_scatter(Latitude,
+            coord_system = "geo") %>% 
+  e_tooltip()
+
+
+# mountain elev background (highcharter) ------------------------------------------------
+
+tbl_djf_rel <- tribble(
+  ~x, ~y, ~ns, ~value, ~elev_range, 
+  200, 500,  "North", -7.2, "0-1000m",
+  420, 500,  "South", -8.7, "0-1000m",
+  220, 1500,  "North", -3.6, "1000-2000m",
+  380, 1500,  "South", -6.5, "1000-2000m",
+  240, 2500,  "North", -2.5, "2000-3000m",
+  360, 2500,  "South", 0.2, "2000-3000m",
+  250, 3500,  "North", 0, ">3000m",
+  320, 3500,  "South", 0, ">3000m"
+) %>% 
+  mutate(label = if_else(y < 3000, sprintf("%+.1f%%", value*49/10), "?"),
+         value_size = if_else(y < 3000, abs(value), 0.001))
+
+
+
 
 library(highcharter)
 
 tbl_elev <- readRDS("data/mountain-background.rds")
-tbl_elev_sub <- tbl_elev[170: 500, ] %>% 
+tbl_elev_sub <- tbl_elev[170: 450, ] %>% 
   dplyr::mutate(elev_scaled = ifelse(elev_rollmean > 1000,
                                      elev_rollmean/max(elev_rollmean)*4500,
                                      elev_rollmean))
@@ -443,12 +486,165 @@ hchart(tbl_elev_sub,
        "line",
        hcaes(ii, elev_scaled))
 
+# line, north, south
+# cols <- c("#969696", "#386cb0", "#fdc086")
+# cols <- c("#969696", "#a6cee3", "#b2df8a")
+cols <- c("#969696", "#1f78b4", "#33a02c")
+
 highchart() %>% 
+  # hc_add_theme(hc_theme_bloom()) %>% 
+  hc_add_theme(hc_theme_hcrt()) %>% 
   hc_add_series(tbl_elev_sub,
                 "line",
                 hcaes(ii, elev_scaled),
-                name = "Mountain")
+                name = "Mountain",
+                enableMouseTracking = F,
+                showInLegend = F,
+                states = list(inactive = list(opacity = 1))) %>% 
+  hc_add_series(tbl_djf_rel,
+                "scatter",
+                hcaes(x, y, group = ns, size = value_size),
+                dataLabels = list(enabled = T,
+                                  align = "left",
+                                  x = 20,
+                                  # color = "grey",
+                                  format = "{point.label}")) %>% 
+  hc_colors(cols) %>%
+  hc_legend(align = "center",
+            verticalAlign = "top",
+            x = -30) %>%
+  hc_yAxis(title = list(text = "Elevation",
+                        rotation = 0,
+                        align = "high",
+                        offset = 10,
+                        y = 10),
+           # breaks = c(0:3*1000),
+           labels = list(format = "{value:f} m"),
+           min = 0, max = 4700,
+           # tickAmount = 2,
+           tickInterval = 1000,
+           endOnTick = F) %>% 
+  hc_xAxis(visible = F) %>% 
+  hc_title(text = "Change in average winter snow depth 1971-2019") %>% 
+  hc_subtitle(text = "Winter is December - February, changes averaged for 1000 m elevation bands") %>% 
+  hc_caption(text = strwrap(width = 1e6, 
+                            "Changes are determined from linear regressions over the whole period, 
+                            and averaged over all stations in 1000 m elevation bands. 
+                            Over 3000 m, no stations with such long records exist.")) 
 
+
+
+
+
+
+
+# test label
+
+tbl_djf_rel <- tribble(
+  ~x, ~y, ~ns, ~value, ~elev_range, 
+  200, 500,  "North", -7.2, "0-1000m",
+  420, 500,  "South", -8.7, "0-1000m",
+  220, 1500,  "North", -3.6, "1000-2000m",
+  380, 1500,  "South", -6.5, "1000-2000m",
+  240, 2500,  "North", -2.5, "2000-3000m",
+  360, 2500,  "South", 0.2, "2000-3000m",
+  250, 3500,  "North", 0, ">3000m",
+  320, 3500,  "South", 0, ">3000m"
+) %>% 
+  mutate(label = if_else(y < 3000, sprintf("%+.1f%%", value*49/10), "?"),
+         value_size = if_else(y < 3000, abs(value), 0.1),
+         label_html = if_else(y > 3000, 
+                              div_text_color(label, "#252525"),
+                              if_else(value < 0, 
+                                      div_text_color(label, "#d7301f"),
+                                      div_text_color(label, "#377eb8"))))
+
+div_text_color <- function(text, color){
+  paste0("<div style='font-size:14px;color:", color, ";'>", text, "</div>")
+}
+
+
+x <- c("Elevation", "Change")
+y <- sprintf("{point.%s:s}", c("elev_range", "label"))
+
+tltip <- tooltip_table(x, y)
+
+tltip_position <- JS("
+function (labelWidth, labelHeight, point) { 
+    return { 
+        x: point.plotX + labelWidth / 2 + 20,
+        y: point.plotY + labelHeight / 2 
+    };
+}
+")
+
+
+tltip_position <- JS("
+function(labelWidth, labelHeight, point) {
+        var tooltipX = point.plotX - 20;
+        var tooltipY = point.plotY;
+        return {
+            x: tooltipX,
+            y: tooltipY
+        };
+    }
+")
+
+
+
+highchart() %>% 
+  # hc_add_theme(hc_theme_bloom()) %>% 
+  hc_add_theme(hc_theme_hcrt()) %>% 
+  hc_add_series(tbl_elev_sub,
+                "line",
+                hcaes(ii, elev_scaled),
+                name = "Mountain",
+                enableMouseTracking = F,
+                showInLegend = F,
+                states = list(inactive = list(opacity = 1))) %>% 
+  hc_add_series(tbl_djf_rel,
+                "scatter",
+                hcaes(x, y, group = ns, size = value_size),
+                dataLabels = list(enabled = T,
+                                  align = "left",
+                                  x = 20,
+                                  useHTML = T,
+                                  format = "{point.label_html}")) %>% 
+  hc_colors(cols) %>%
+  hc_legend(align = "center",
+            verticalAlign = "top",
+            x = -30) %>%
+  hc_tooltip(useHTML = T,
+             shape = "callout", # or rect
+             pointFormat = tltip,
+             headerFormat = "") %>% 
+  hc_yAxis(title = list(text = "Elevation",
+                        rotation = 0,
+                        align = "high",
+                        offset = 10,
+                        y = 10),
+           # breaks = c(0:3*1000),
+           labels = list(format = "{value:f} m"),
+           min = 0, max = 4700,
+           # tickAmount = 2,
+           tickInterval = 1000,
+           endOnTick = F) %>% 
+  hc_xAxis(visible = F) %>% 
+  hc_title(text = "Change in average winter snow depth 1971-2019") %>% 
+  hc_subtitle(text = "Winter is December - February, changes averaged for 1000 m elevation bands") %>% 
+  hc_caption(text = strwrap(width = 1e6, 
+                            "Changes are determined from linear regressions over the whole period, 
+                            and averaged over all stations in 1000 m elevation bands. 
+                            Over 3000 m, no stations with such long records exist.")) 
+
+
+
+
+# mountain elev background (echarts) ------------------------------------------------
+
+tbl_elev_sub %>% 
+  e_chart(ii) %>% 
+  e_line(elev_scaled)
 
 
 
