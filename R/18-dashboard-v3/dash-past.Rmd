@@ -28,7 +28,7 @@ div_text_color <- function(text, color){
 ```
 
 
-# Overview
+# Overview 1: HS
 
 
 ```{r overview-data-prep, include=FALSE}
@@ -40,64 +40,42 @@ tbl_elev_sub <- tbl_elev[170: 450, ] %>%
                                      elev_rollmean))
 
 
-load(here::here("data/trends.Rdata"))
+# load(here::here("data/trends_1000m.Rdata"))
+load(here::here("data/trends_500m.Rdata"))
 
-tbl_xy_pos <- tribble(
+# tbl_xy_pos <- tribble(
+#   ~x, ~y, ~ns_fct, ~elev_range, 
+#   200, 500,  "North", "0-1000m",
+#   420, 500,  "South", "0-1000m",
+#   220, 1500,  "North", "1000-2000m",
+#   380, 1500,  "South", "1000-2000m",
+#   240, 2500,  "North", "2000-3000m",
+#   360, 2500,  "South", "2000-3000m",
+#   250, 3500,  "North", ">3000m",
+#   320, 3500,  "South", ">3000m"
+# )
+
+tbl_xy_pos_500 <- tribble(
   ~x, ~y, ~ns_fct, ~elev_range, 
-  200, 500,  "North", "0-1000m",
-  420, 500,  "South", "0-1000m",
-  220, 1500,  "North", "1000-2000m",
-  380, 1500,  "South", "1000-2000m",
-  240, 2500,  "North", "2000-3000m",
-  360, 2500,  "South", "2000-3000m",
-  250, 3500,  "North", ">3000m",
+  200, 250,  "North", "0-500m",
+  420, 250,  "South", "0-500m",
+  210, 750,  "North", "500-1000m",
+  410, 750,  "South", "500-1000m",
+  220, 1250,  "North", "1000-1500m",
+  380, 1250,  "South", "1000-1500m",
+  230, 1750,  "North", "1500-2000m",
+  370, 1750,  "South", "1500-2000m",
+  240, 2250,  "North", "2000-2500m",
+  360, 2250,  "South", "2000-2500m",
+  250, 2750,  "North", "2500-3000m",
+  350, 2750,  "South", "2500-3000m",
+  260, 3500,  "North", ">3000m",
   320, 3500,  "South", ">3000m"
 )
-
-# tbl_3000 <- dat_trends_rel %>% 
-#   group_by(ns_fct, variable) %>% 
-#   summarise(nn = 0, mean = 0, elev_range = ">3000m")
 
 tbl_3000_2 <- dat_trends_rel %>% 
   group_by(ns_fct, variable) %>% 
   summarise(nn_abs = 0, nn_rel = 0, value_abs = 0, value_rel = 0, elev_range = ">3000m")
-
-# 
-# tbl_rel <-
-#   dat_trends_rel %>% 
-#   tidyr::separate(elev_fct, c(NA, "elev_min", "elev_max", NA)) %>% 
-#   mutate(elev_range = paste0(elev_min, "-", elev_max, "m")) %>%
-#   rename(value = mean) %>% 
-#   bind_rows(tbl_3000) %>% 
-#   left_join(tbl_xy_pos) %>% 
-#   mutate(label = if_else(y < 3000, sprintf("%+.1f%%", value), "?"),
-#          value_size = if_else(y < 3000, abs(value), 0.1),
-#          label_html = if_else(y > 3000, 
-#                               div_text_color(label, "#252525"),
-#                               if_else(value < 0, 
-#                                       div_text_color(label, "#d7301f"),
-#                                       div_text_color(label, "#377eb8"))))
-# 
-# 
-# tbl_abs <-
-#   dat_trends_abs %>% 
-#   tidyr::separate(elev_fct, c(NA, "elev_min", "elev_max", NA)) %>% 
-#   mutate(elev_range = paste0(elev_min, "-", elev_max, "m")) %>%
-#   rename(value = mean) %>% 
-#   bind_rows(tbl_3000) %>% 
-#   left_join(tbl_xy_pos) %>% 
-#   mutate(label = if_else(y > 3000, 
-#                          "?",
-#                          if_else(startsWith(variable, "SCD"),
-#                                  sprintf("%+.0f days", value),
-#                                  sprintf("%+.1f cm", value))),
-#          value_size = if_else(y < 3000, abs(value), 0.1),
-#          label_html = if_else(y > 3000, 
-#                               div_text_color(label, "#252525"),
-#                               if_else(value < 0, 
-#                                       div_text_color(label, "#d7301f"),
-#                                       div_text_color(label, "#377eb8"))))
-# 
 
 
 dat_trends <- left_join(
@@ -111,7 +89,8 @@ dat_trends %>%
   tidyr::separate(elev_fct, c(NA, "elev_min", "elev_max", NA)) %>% 
   mutate(elev_range = paste0(elev_min, "-", elev_max, "m")) %>%
   bind_rows(tbl_3000_2) %>% 
-  left_join(tbl_xy_pos) %>% 
+  # left_join(tbl_xy_pos) %>% 
+  left_join(tbl_xy_pos_500) %>% 
   mutate(label = if_else(y > 3000, 
                          "?",
                          if_else(startsWith(variable, "SCD"),
@@ -189,7 +168,9 @@ highchart() %>%
   hc_subtitle(text = "December to February") %>%
   hc_caption(text = strwrap(width = 1e6, 
                             "Changes are determined from linear regressions over the whole period, 
-                            and averaged over all stations in 1000 m elevation bands. 
+                            and averaged over all stations in 500 m elevation bands. 
+                            Over 2000 m, only few stations were available, so estimates should be
+                            treated with caution. 
                             Over 3000 m, no stations with such long records exist.")) 
 
 
@@ -247,7 +228,9 @@ highchart() %>%
   hc_subtitle(text = "March to May") %>%
   hc_caption(text = strwrap(width = 1e6, 
                             "Changes are determined from linear regressions over the whole period, 
-                            and averaged over all stations in 1000 m elevation bands. 
+                            and averaged over all stations in 500 m elevation bands. 
+                            Over 2000 m, only few stations were available, so estimates should be
+                            treated with caution. 
                             Over 3000 m, no stations with such long records exist.")) 
 
 
@@ -260,7 +243,7 @@ highchart() %>%
 
 
 
-
+# Overview 2: SCD
 
 ## Row
 
@@ -313,7 +296,9 @@ highchart() %>%
   hc_subtitle(text = "November to February") %>%
   hc_caption(text = strwrap(width = 1e6, 
                             "Snow cover duration is days with snow depth > 1cm. Changes are determined from linear regressions over the whole period, 
-                            and averaged over all stations in 1000 m elevation bands. 
+                            and averaged over all stations in 500 m elevation bands. 
+                            Over 2000 m, only few stations were available, so estimates should be
+                            treated with caution. 
                             Over 3000 m, no stations with such long records exist.")) 
 
 
@@ -372,7 +357,9 @@ highchart() %>%
   hc_subtitle(text = "March to May") %>%
   hc_caption(text = strwrap(width = 1e6, 
                             "Snow cover duration is days with snow depth > 1cm. Changes are determined from linear regressions over the whole period, 
-                            and averaged over all stations in 1000 m elevation bands. 
+                            and averaged over all stations in 500 m elevation bands. 
+                            Over 2000 m, only few stations were available, so estimates should be
+                            treated with caution. 
                             Over 3000 m, no stations with such long records exist.")) 
 
 

@@ -648,6 +648,18 @@ tbl_elev_sub %>%
 
 
 
+# ts plot -----------------------------------------------------------------
+
+
+dat_plot_ts_mean[variable == "meanHS_DJF"] %>% 
+  ggplot(aes(year, mean_value, colour = ns_fct))+
+  geom_line()+
+  geom_smooth(method = lm)+
+  facet_wrap(~elev_fct, ncol = 1, scales = "free_y")+
+  theme_bw()
+
+
+
 
 # EOF ---------------------------------------------------------------------
 
