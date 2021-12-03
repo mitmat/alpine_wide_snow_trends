@@ -1,0 +1,246 @@
+---
+title: "CliRSnow"
+output: 
+  flexdashboard::flex_dashboard:
+    storyboard: true
+    self_contained: false
+    lib_dir: libs
+    theme: bootstrap
+    orientation: rows
+    vertical_layout: fill
+    social: menu
+    source: embed
+    logo: media/logo_72x48.png
+    navbar:
+      - { title: "Back to main dashboard", href: "./index.html", align: right }
+      - { title: "Back to CliRSnow homepage", href: "/", align: right }
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(leaflet)
+# library(mapview)
+library(plotly)
+library(crosstalk)
+
+library(sf)
+library(stars)
+library(ggplot2)
+library(data.table)
+library(dplyr)
+library(forcats)
+```
+
+```{r aux-text, include=FALSE}
+
+library(htmltools)
+
+icon_plotly_box <- tags$svg(viewBox="0 0 1000 1000", class="icon", height="1em", width="1em",
+                                       tags$path(d = "m0 850l0-143 143 0 0 143-143 0z m286 0l0-143 143 0 0 143-143 0z m285 0l0-143 143 0 0 143-143 0z m286 0l0-143 143 0 0 143-143 0z m-857-286l0-143 143 0 0 143-143 0z m857 0l0-143 143 0 0 143-143 0z m-857-285l0-143 143 0 0 143-143 0z m857 0l0-143 143 0 0 143-143 0z m-857-286l0-143 143 0 0 143-143 0z m286 0l0-143 143 0 0 143-143 0z m285 0l0-143 143 0 0 143-143 0z m286 0l0-143 143 0 0 143-143 0z",
+                                                            transform="matrix(1 0 0 -1 0 850)"))
+
+icon_plotly_home <- tags$svg(viewBox="0 0 928.6 1000", class="icon", height="1em", width="1em",
+         tags$path(d = "m786 296v-267q0-15-11-26t-25-10h-214v214h-143v-214h-214q-15 0-25 10t-11 26v267q0 1 0 2t0 2l321 264 321-264q1-1 1-4z m124 39l-34-41q-5-5-12-6h-2q-7 0-12 3l-386 322-386-322q-7-4-13-4-7 2-12 7l-35 41q-4 5-3 13t6 12l401 334q18 15 42 15t43-15l136-114v109q0 8 5 13t13 5h107q8 0 13-5t5-13v-227l122-102q5-5 6-12t-4-13z",
+                   transform="matrix(1 0 0 -1 0 850)"))
+
+info_map1 <- p("Shows location of stations, colored by region. ")
+
+info_map2 <- p("Use ",
+               tags$i(class="ion-qr-scanner"),
+               " to select an area",
+               br(),
+               tags$i(class="fa fa-arrow-alt-circle-right"),
+               "the stations will be highlighted in the trend scatter plot")
+
+
+info_trend1 <- p("Shows the trend per decade of each station (x-axis) versus the station's elevation (y-axis).")
+
+info_trend2 <- p("Use box select ",
+                icon_plotly_box,
+                "to select stations ",
+                br(),
+                tags$i(class="fa fa-arrow-alt-circle-right"),
+                "these will be highlighted in the map",
+                br(),
+                "Use the home button ",
+                icon_plotly_home, " to reset selection. ")
+
+```
+
+
+```{r data-prep, include=FALSE}
+
+
+cols_cluster <- setNames(scales::brewer_pal(palette = "Set1")(5),
+                         c("NW", "NE", "North & high Alpine", "South & high Alpine", "SE"))
+
+dat_meta_clust <- readRDS("~/alps-snow/ALPINE_WIDE_SNOW/PAPER/02_review/rds/meta-with-cluster-01.rds")
+load("~/alps-snow/ALPINE_WIDE_SNOW/PAPER/02_review/rds/trends-01-1971-2019-ols-gls.rda")
+
+dat_plot_month <- dat_month_gls[term == "year0"] %>% 
+  merge(dat_meta_clust, by = "Name")
+dat_plot_month[, est_low := estimate - 1.96 * std.error]
+dat_plot_month[, est_high := estimate + 1.96 * std.error]
+mitmatmisc::add_month_fct(dat_plot_month, 10)
+dat_plot_month[, hilo := fct_collapse(cluster_fct, 
+                                      high = c("South & high Alpine", "North & high Alpine"),
+                                      low = c("NW", "NE", "SE"))]
+dat_plot_month[, Trend := round(estimate*10, 2)]
+dat_plot_month[, Region := cluster_fct] 
+ylim_common <- range(dat_plot_month$Elevation)
+
+dat_meta_cluster <- readRDS(here::here("data/meta-with-cluster-01.rds"))
+sf_meta <- st_as_sf(dat_meta_cluster,
+                    coords = c("Longitude", "Latitude"),
+                    crs = 4326)
+sf_meta <- sf_meta %>% mutate(Region = cluster_fct)
+# load(here::here("data/viz_past.Rdata"))
+leaf_col <- colorFactor("Set1", levels = levels(sf_meta$Region))
+
+dat_plot_month %>% 
+  dcast(Name + Region + Elevation + Latitude + Longitude ~ month_fct, value.var = "Trend" ) -> dat_share
+
+
+sf_share <- sf_meta %>%
+  left_join(dat_plot_month %>% 
+              dcast(Name + Region + Elevation ~ month_fct, value.var = "Trend"))
+  
+# shared_trends <- SharedData$new(sf_share)
+shared_trends <- SharedData$new(sf_share %>% filter(!is.na(Nov)))
+shared_trends_dec <- SharedData$new(sf_share %>% filter(!is.na(Dec)))
+# shared_trends <- SharedData$new(dat_share[!is.na(Nov)])
+# shared_trends <- SharedData$new(sf_share[sample(nrow(sf_share), 100), ])
+
+```
+
+```{r funs}
+
+dat_plot_month2 <- dat_plot_month[, .(Name, Region, Elevation, Latitude, Longitude,
+                                      month, Trend)]
+
+dat_plot_month2[month == 12] %>% 
+  left_join(sf_meta) %>% 
+  SharedData$new() -> shared_dec
+
+f_plot_month <- function(dat, mo){
+  
+  dat %>% 
+  ggplot(aes(Trend, Elevation, colour = Region, label = Name))+
+  geom_vline(xintercept = 0)+
+  geom_point()+
+  theme_bw()+
+  theme(panel.grid.minor = element_blank())+
+  scale_color_manual("", values = cols_cluster)+
+  ylim(ylim_common)+
+  xlab(paste0("Linear trend in ", month.name[mo], " mean snow depth [cm per decade]"))+
+  ylab("Elevation [m]")
+  
+}
+
+f_leaf <- function(dat){
+  
+  dat %>% 
+    leaflet %>% 
+    addProviderTiles("CartoDB.Positron", group = "CartoDB") %>% 
+    addProviderTiles("Esri.WorldTopoMap", group = "Topomap") %>% 
+    addProviderTiles("Esri.WorldImagery", group = "WorldImagery") %>% 
+    addLayersControl(baseGroups = c("CartoDB", "Topomap", "WorldImagery"),
+                     position = "topright",
+                     options = layersControlOptions(collapsed = FALSE)) %>% 
+    addCircleMarkers(stroke = F,
+                     fillOpacity = 0.8,
+                     radius = 5,
+                     color = ~ leaf_col(Region))
+  
+}
+
+```
+
+
+# November {data-navmenu="Trends by single station"}
+
+
+## Row {data-height=150}
+
+### Map info
+
+`r info_map1` 
+`r info_map2`
+
+### Scatter plot info
+
+`r info_trend1`
+`r info_trend2`
+
+## Row
+
+
+### Map
+
+```{r}
+
+leaflet(shared_trends) %>% 
+  addTiles %>% 
+  addCircleMarkers(stroke = F,
+                   fillOpacity = 0.8,
+                   radius = 5,
+                   color = ~ leaf_col(Region))
+
+```
+
+
+### Scatter plot of trends
+
+```{r}
+
+ggplotly(
+  ggplot(shared_trends, aes(Nov, Elevation, colour = Region, label = Name))+
+    geom_vline(xintercept = 0)+
+    geom_point()+
+    theme_bw()+
+    # theme(panel.grid.minor = element_blank())+
+    scale_color_manual("", values = cols_cluster)+
+    ylim(ylim_common)+
+    # xlab(paste0("Linear trend in ", month.name[mo], " mean HS [cm per decade]"))+
+    ylab("Elevation [m]")
+) %>% 
+  highlight(on = "plotly_selected", off = "plotly_relayout")
+
+```
+
+
+# December {data-navmenu="Trends by single station"}
+
+## Row {data-height=150}
+
+### Map info
+
+`r info_map1` 
+`r info_map2`
+
+### Scatter plot info
+
+`r info_trend1`
+`r info_trend2`
+
+## Row
+
+### Map
+
+```{r}
+
+shared_dec %>% 
+  f_leaf()
+
+```
+
+### Trend plot
+
+```{r}
+
+f_plot_month(shared_dec, 12) %>% 
+  ggplotly() %>% 
+  highlight(on = "plotly_selected", off = "plotly_relayout")
+
+
+```

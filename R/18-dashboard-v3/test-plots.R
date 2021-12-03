@@ -660,6 +660,149 @@ dat_plot_ts_mean[variable == "meanHS_DJF"] %>%
 
 
 
+# crosstalk stn level trends ----------------------------------------------
+
+cols_cluster <- setNames(scales::brewer_pal(palette = "Set1")(5),
+                         c("NW", "NE", "North & high Alpine", "South & high Alpine", "SE"))
+
+dat_meta_clust <- readRDS("~/alps-snow/ALPINE_WIDE_SNOW/PAPER/02_review/rds/meta-with-cluster-01.rds")
+load("~/alps-snow/ALPINE_WIDE_SNOW/PAPER/02_review/rds/trends-01-1971-2019-ols-gls.rda")
+
+dat_plot_month <- dat_month_gls[term == "year0"] %>% 
+  merge(dat_meta_clust, by = "Name")
+dat_plot_month[, est_low := estimate - 1.96 * std.error]
+dat_plot_month[, est_high := estimate + 1.96 * std.error]
+mitmatmisc::add_month_fct(dat_plot_month, 10)
+dat_plot_month[, hilo := fct_collapse(cluster_fct, 
+                                      high = c("South & high Alpine", "North & high Alpine"),
+                                      low = c("NW", "NE", "SE"))]
+dat_plot_month[, Trend := round(estimate*10, 2)]
+dat_plot_month[, Region := cluster_fct]
+ylim_common <- range(dat_plot_month$Elevation)
+
+f_plot_month <- function(dat, mo){
+  
+  dat[month == mo] %>% 
+    ggplot(aes(Trend, Elevation, colour = Region, label = Name))+
+    geom_vline(xintercept = 0)+
+    geom_point()+
+    theme_bw()+
+    theme(panel.grid.minor = element_blank())+
+    scale_color_manual("", values = cols_cluster)+
+    ylim(ylim_common)+
+    xlab(paste0("Linear trend in ", month.name[mo], " mean HS [cm per decade]"))+
+    ylab("Elevation [m]")
+  
+}
+
+
+
+ggplotly(f_plot_month(dat_plot_month, 11),
+         tooltip = c("x", "y", "colour", "label"))
+
+
+
+dat_meta_cluster <- readRDS(here::here("data/meta-with-cluster-01.rds"))
+sf_meta <- st_as_sf(dat_meta_cluster,
+                    coords = c("Longitude", "Latitude"),
+                    crs = 4326)
+sf_meta <- sf_meta %>% mutate(Region = cluster_fct)
+load(here::here("data/viz_past.Rdata"))
+
+
+leaflet() %>% 
+  addProviderTiles("CartoDB.Positron", group = "CartoDB") %>% 
+  # addProviderTiles("Esri.WorldTopoMap", group = "Topomap") %>% 
+  # addProviderTiles("Esri.WorldImagery", group = "WorldImagery") %>% 
+  
+  addCircleMarkers(data = sf_meta,
+                   stroke = F,
+                   fillOpacity = 0.8,
+                   radius = 5,
+                   color = ~ mv5_leaf_col(Region),
+                   group = "In-situ snow depth regions")
+
+
+
+## shared data -------------------------------------------------------------
+
+dat_plot_month[, .(Trend, Elevation, Region, Name, month)]
+
+dat_plot_month %>% 
+  dcast(Name + Region + Elevation + Latitude + Longitude ~ month_fct, value.var = "Trend" ) -> dat_share
+
+
+sf_share <- sf_meta %>%
+  left_join(dat_plot_month %>% 
+              dcast(Name + Region + Elevation ~ month_fct, value.var = "Trend"))
+
+  
+shared_trends <- SharedData$new(sf_share)
+shared_trends <- SharedData$new(sf_share %>% filter(!is.na(Nov)), key = ~Name)
+shared_trends <- SharedData$new(dat_share[!is.na(Nov)], key = ~Name)
+# shared_trends <- SharedData$new(sf_share[sample(nrow(sf_share), 100), ])
+
+
+
+bscols(
+  leaflet(shared_trends) %>% 
+    addTiles %>% 
+    addCircleMarkers(stroke = F,
+                     fillOpacity = 0.8,
+                     radius = 5,
+                     color = ~ mv5_leaf_col(Region),
+                     group = "In-situ snow depth regions"),
+  ggplotly(
+    ggplot(shared_trends, aes(Nov, Elevation, colour = Region, label = Name))+
+      geom_vline(xintercept = 0)+
+      geom_point()+
+      theme_bw()+
+      theme(panel.grid.minor = element_blank())+
+      scale_color_manual("", values = cols_cluster)+
+      ylim(ylim_common)+
+      # xlab(paste0("Linear trend in ", month.name[mo], " mean HS [cm per decade]"))+
+      ylab("Elevation [m]")
+  )
+)
+
+
+bscols(
+  leaflet(shared_trends, height = 300) %>% 
+    addTiles %>% 
+    addCircleMarkers(stroke = F,
+                     fillOpacity = 0.8,
+                     radius = 5,
+                     color = ~ mv5_leaf_col(Region),
+                     group = "In-situ snow depth regions"),
+  d3scatter::d3scatter(shared_trends, ~Nov, ~Elevation, ~Region, height = 300)
+)
+
+
+bscols(
+  leaflet(shared_trends) %>% 
+    addTiles %>% 
+    addCircleMarkers(stroke = F,
+                     fillOpacity = 0.8,
+                     radius = 5,
+                     color = ~ mv5_leaf_col(Region),
+                     group = "In-situ snow depth regions"),
+  plot_ly(data = shared_trends,
+          type = "scatter",
+          x = ~ Nov, y = ~ Elevation)
+)
+
+ggplotly(
+  ggplot(shared_trends, aes(Nov, Elevation, colour = Region, label = Name))+
+    geom_vline(xintercept = 0)+
+    geom_point()+
+    theme_bw()+
+    theme(panel.grid.minor = element_blank())+
+    scale_color_manual("", values = cols_cluster)+
+    ylim(ylim_common)+
+    # xlab(paste0("Linear trend in ", month.name[mo], " mean HS [cm per decade]"))+
+    ylab("Elevation [m]")
+) %>% 
+  highlight(on = "plotly_selected", off = "plotly_relayout")
 
 # EOF ---------------------------------------------------------------------
 
