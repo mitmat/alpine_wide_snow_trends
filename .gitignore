@@ -6,4 +6,5 @@ fig/
 *.Rout
 manual-qc/
 R/18-dashboard-v3/libs/
+R/18-dashboard-v3/*.html
 data-raw/

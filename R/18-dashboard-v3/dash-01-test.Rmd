@@ -156,6 +156,92 @@ f_leaf <- function(dat){
 
 ```
 
+# Station time series
+
+
+
+```{r}
+
+# addLegendCustom() from: https://stackoverflow.com/questions/52812238/custom-legend-with-r-leaflet-circles-and-squares-in-same-plot-legends
+addLegendCustom <- function(map, colors, labels, sizes, shapes, borders, opacity = 0.5){
+  
+  make_shapes <- function(colors, sizes, borders, shapes) {
+    shapes <- gsub("circle", "50%", shapes)
+    shapes <- gsub("square", "0%", shapes)
+    paste0(colors, "; width:", sizes, "px; height:", sizes, "px; border:3px solid ", borders, "; border-radius:", shapes)
+  }
+  make_labels <- function(sizes, labels) {
+    paste0("<div style='display: inline-block;height: ", 
+           sizes, "px;margin-top: 4px;line-height: ", 
+           sizes, "px;'>", labels, "</div>")
+  }
+  
+  legend_colors <- make_shapes(colors, sizes, borders, shapes)
+  legend_labels <- make_labels(sizes, labels)
+  
+  return(addLegend(map, colors = legend_colors, labels = legend_labels, opacity = opacity))
+}
+
+
+stn_trend <- sort(unique(c(dat_month_ols$Name, dat_month_gls$Name,
+                           dat_seasonal_gls$Name, dat_seasonal_ols$Name)))
+
+dat_meta_ts <- readRDS(here::here("data/meta-with-cluster-01.rds"))
+dat_meta_ts[, stn_long := ifelse(Name %in% stn_trend, "trend", "region")]
+dat_meta_ts[, leaf_opac := ifelse(Name %in% stn_trend, 0.8, 0.4)]
+dat_meta_ts[, leaf_rad := ifelse(Name %in% stn_trend, 6, 4)]
+
+dat_meta_ts[, popup_html := paste0(
+  Name, "<br>", 
+  Elevation, "m <br>", 
+  round(Longitude, 3), "°E ", round(Latitude, 3), "°N <br><br>",
+  '<a href="ts-season/', Name, '.png" target="_blank">Seasonal snow indices <i class="fa fa-external-link-alt"></i></a><br><br>',
+  '<a href="ts-month/', Name, '.png" target="_blank">Monthly mean snow depth <i class="fa fa-external-link-alt"></i></a><br>'
+)]
+sf_meta_ts <- st_as_sf(dat_meta_ts,
+                          coords = c("Longitude", "Latitude"),
+                          crs = 4326)
+
+
+
+
+# sf_meta_ts %>% 
+#   leaflet() %>% 
+#   addProviderTiles("Esri.WorldTopoMap") %>% 
+#   addCircleMarkers(color = ~leaf_col(cluster_fct),
+#                    stroke = F, 
+#                    radius = ~leaf_rad,
+#                    fillOpacity = ~leaf_opac,
+#                    popup = ~popup_html)
+
+
+
+leaflet() %>% 
+  addProviderTiles("Esri.WorldTopoMap") %>% 
+  addCircleMarkers(data = sf_meta_ts %>% filter(stn_long == "region"),
+                   color = ~leaf_col(cluster_fct),
+                   stroke = F, 
+                   radius = 5,
+                   fillOpacity = 0.4,
+                   popup = ~popup_html) %>% 
+  addCircleMarkers(data = sf_meta_ts %>% filter(stn_long == "trend"),
+                   color = ~leaf_col(cluster_fct),
+                   stroke = T, 
+                   weight = 2,
+                   radius = 5,
+                   opacity = 0.8,
+                   fillOpacity = 0.4,
+                   popup = ~popup_html) %>% 
+  addLegendCustom(colors = "gray",
+                  labels = c("Full period 1971-2019 available", "With gaps"),
+                  sizes = 20,
+                  shapes = "circle",
+                  borders = c("black", "white"))
+
+```
+
+
+
 
 # November {data-navmenu="Trends by single station"}
 

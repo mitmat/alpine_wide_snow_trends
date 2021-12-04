@@ -20,7 +20,8 @@ output:
 library(flexdashboard)
 library(leaflet)
 library(leafsync)
-library(mapview)
+# library(mapview)
+library(leaflegend)
 
 library(raster)
 library(sf)
@@ -244,12 +245,15 @@ leaflet() %>%
                    radius = 5,
                    color = ~ mv5_leaf_col(Region),
                    group = "In-situ snow depth regions") %>% 
-  addLegend(pal = mv5_leaf_col, 
-            values = sf_meta$Region,
-            opacity = 0.8,
-            title = "In-situ snow depth regions",
-            position = "bottomleft") %>% 
-
+  addLegendFactor(pal = mv5_leaf_col, 
+                  values = sf_meta$Region,
+                  shape = "circle",
+                  width = 20, height = 20,
+                  opacity = 0.8,
+                  title = "In-situ snow depth regions",
+                  position = "bottomleft",
+                  group = "In-situ snow depth regions") %>% 
+  
 
   addPolylines(data = sf_lines_crs,
                color = "black",

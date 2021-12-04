@@ -17,9 +17,13 @@ output:
 
 ```{r setup, include=FALSE}
 library(flexdashboard)
-# library(leaflet)
+library(leaflet)
 library(highcharter)
+library(crosstalk)
+library(plotly)
 
+library(ggplot2)
+library(sf)
 library(dplyr)
 
 div_text_color <- function(text, color){
@@ -37,7 +41,10 @@ tbl_elev <- readRDS(here::here("data/mountain-background.rds"))
 tbl_elev_sub <- tbl_elev[170: 450, ] %>% 
   dplyr::mutate(elev_scaled = ifelse(elev_rollmean > 1000,
                                      elev_rollmean/max(elev_rollmean)*4500,
-                                     elev_rollmean))
+                                     elev_rollmean)) %>% 
+  dplyr::mutate(elev_scaled = ifelse(elev_scaled < 4000 & ii < 280,
+                                     scales::rescale(elev_scaled, to = c(-100, 4000)),
+                                     elev_scaled))
 
 
 # load(here::here("data/trends_1000m.Rdata"))
@@ -370,17 +377,738 @@ highchart() %>%
 
 
 
-
-# single stn trends
-
+<!-- prep data for stn trends   -->
 
 
-# Map TS
+```{r aux-text, include=FALSE}
+
+library(htmltools)
+
+icon_plotly_box <- tags$svg(viewBox="0 0 1000 1000", class="icon", height="1em", width="1em",
+                                       tags$path(d = "m0 850l0-143 143 0 0 143-143 0z m286 0l0-143 143 0 0 143-143 0z m285 0l0-143 143 0 0 143-143 0z m286 0l0-143 143 0 0 143-143 0z m-857-286l0-143 143 0 0 143-143 0z m857 0l0-143 143 0 0 143-143 0z m-857-285l0-143 143 0 0 143-143 0z m857 0l0-143 143 0 0 143-143 0z m-857-286l0-143 143 0 0 143-143 0z m286 0l0-143 143 0 0 143-143 0z m285 0l0-143 143 0 0 143-143 0z m286 0l0-143 143 0 0 143-143 0z",
+                                                            transform="matrix(1 0 0 -1 0 850)"))
+
+icon_plotly_home <- tags$svg(viewBox="0 0 928.6 1000", class="icon", height="1em", width="1em",
+         tags$path(d = "m786 296v-267q0-15-11-26t-25-10h-214v214h-143v-214h-214q-15 0-25 10t-11 26v267q0 1 0 2t0 2l321 264 321-264q1-1 1-4z m124 39l-34-41q-5-5-12-6h-2q-7 0-12 3l-386 322-386-322q-7-4-13-4-7 2-12 7l-35 41q-4 5-3 13t6 12l401 334q18 15 42 15t43-15l136-114v109q0 8 5 13t13 5h107q8 0 13-5t5-13v-227l122-102q5-5 6-12t-4-13z",
+                   transform="matrix(1 0 0 -1 0 850)"))
+
+info_map1 <- p("Shows location of stations, colored by region. ")
+
+info_map2 <- p("Use ",
+               tags$i(class="ion-qr-scanner"),
+               " to select an area",
+               # br(),
+               tags$i(class="fa fa-arrow-alt-circle-right"),
+               "the stations will be highlighted in the trend scatter plot.")
+
+
+info_trend1 <- p("Shows the trend per decade of each station (x-axis) versus the station's elevation (y-axis).")
+
+info_trend2 <- p("Use box select ",
+                icon_plotly_box,
+                "to select stations ",
+                # br(),
+                tags$i(class="fa fa-arrow-alt-circle-right"),
+                "these will be highlighted in the map.",
+                br(),
+                "Use the home button ",
+                icon_plotly_home, " to reset selection. ")
+
+```
+
+
+```{r data-funs, include=FALSE}
+
+# meta
+dat_meta_cluster <- readRDS(here::here("data/meta-with-cluster-01.rds"))
+sf_meta <- st_as_sf(dat_meta_cluster,
+                    coords = c("Longitude", "Latitude"),
+                    crs = 4326)
+sf_meta <- sf_meta %>% mutate(Region = cluster_fct)
+
+# colors
+cols_cluster <- setNames(scales::brewer_pal(palette = "Set1")(5),
+                         c("NW", "NE", "North & high Alpine", 
+                           "South & high Alpine", "SE"))
+leaf_col <- colorFactor("Set1", levels = levels(sf_meta$Region))
+
+
+# stn trends as shared data
+load(here::here("data/single-stn-trends.Rdata"))
+ylim_common <- range(dat_plot_month$Elevation)
+
+dat_plot_month2 <- dat_plot_month[, .(Name, Region, 
+                                      Elevation, Latitude, Longitude,
+                                      month, Trend)]
+
+dat_plot_season_hs2 <- dat_plot_season_hs[, .(Name, Region, 
+                                              Elevation, Latitude, Longitude,
+                                              variable, Trend)]
+
+dat_plot_season_scd2 <- dat_plot_season_scd[, .(Name, Region, 
+                                                Elevation, Latitude, Longitude,
+                                                variable, Trend)]
+
+## month shared
+dat_plot_month2[month == 11] %>% 
+  left_join(sf_meta) %>% 
+  SharedData$new() -> shared_nov
+
+dat_plot_month2[month == 12] %>% 
+  left_join(sf_meta) %>% 
+  SharedData$new() -> shared_dec
+
+dat_plot_month2[month == 1] %>% 
+  left_join(sf_meta) %>% 
+  SharedData$new() -> shared_jan
+
+dat_plot_month2[month == 2] %>% 
+  left_join(sf_meta) %>% 
+  SharedData$new() -> shared_feb
+
+dat_plot_month2[month == 3] %>% 
+  left_join(sf_meta) %>% 
+  SharedData$new() -> shared_mar
+
+dat_plot_month2[month == 4] %>% 
+  left_join(sf_meta) %>% 
+  SharedData$new() -> shared_apr
+
+dat_plot_month2[month == 5] %>% 
+  left_join(sf_meta) %>% 
+  SharedData$new() -> shared_may
+
+## season shared
+# maxHS_NDJFMAM     meanHS_DJF     meanHS_MAM meanHS_NDJFMAM 
+# SCD_MAM    SCD_NDJF SCD_NDJFMAM 
+dat_plot_season_hs2[variable == "meanHS_NDJFMAM"] %>% 
+  left_join(sf_meta) %>% 
+  SharedData$new() -> shared_meanHS_NDJFMAM
+
+dat_plot_season_hs2[variable == "meanHS_DJF"] %>% 
+  left_join(sf_meta) %>% 
+  SharedData$new() -> shared_meanHS_DJF
+
+dat_plot_season_hs2[variable == "meanHS_MAM"] %>% 
+  left_join(sf_meta) %>% 
+  SharedData$new() -> shared_meanHS_MAM
+
+dat_plot_season_hs2[variable == "maxHS_NDJFMAM"] %>% 
+  left_join(sf_meta) %>% 
+  SharedData$new() -> shared_maxHS_NDJFMAM
+
+dat_plot_season_scd2[variable == "SCD_NDJFMAM"] %>% 
+  left_join(sf_meta) %>% 
+  SharedData$new() -> shared_SCD_NDJFMAM
+
+dat_plot_season_scd2[variable == "SCD_NDJF"] %>% 
+  left_join(sf_meta) %>% 
+  SharedData$new() -> shared_SCD_NDJF
+
+dat_plot_season_scd2[variable == "SCD_MAM"] %>% 
+  left_join(sf_meta) %>% 
+  SharedData$new() -> shared_SCD_MAM
+
+# plot funs
+f_plot_month <- function(dat, mo){
+  
+  gg <- dat %>% 
+  ggplot(aes(Trend, Elevation, colour = Region, label = Name))+
+  geom_vline(xintercept = 0)+
+  geom_point()+
+  theme_bw()+
+  theme(panel.grid.minor = element_blank())+
+  scale_color_manual("", values = cols_cluster)+
+  ylim(ylim_common)+
+  xlab(paste0("Linear trend in ", month.name[mo], " mean snow depth [cm per decade]"))+
+  ylab("Elevation [m]")
+  
+  gg %>% 
+    ggplotly() %>% 
+    highlight(on = "plotly_selected", off = "plotly_relayout")
+  
+}
+
+
+f_plot_season <- function(dat, seas_lab){
+  
+  gg <- dat %>% 
+    ggplot(aes(Trend, Elevation, colour = Region, label = Name))+
+    geom_vline(xintercept = 0)+
+    geom_point()+
+    theme_bw()+
+    theme(panel.grid.minor = element_blank())+
+    scale_color_manual("", values = cols_cluster)+
+    ylim(ylim_common)+
+    xlab(paste0("Linear trend in ", seas_lab, " per decade]"))+
+    ylab("Elevation [m]")
+  
+  gg %>% 
+    ggplotly() %>% 
+    highlight(on = "plotly_selected", off = "plotly_relayout")
+  
+}
+
+
+f_leaf <- function(dat){
+  
+  dat %>% 
+    leaflet %>% 
+    addProviderTiles("CartoDB.Positron", group = "CartoDB") %>% 
+    addProviderTiles("Esri.WorldTopoMap", group = "Topomap") %>% 
+    addProviderTiles("Esri.WorldImagery", group = "WorldImagery") %>% 
+    addLayersControl(baseGroups = c("CartoDB", "Topomap", "WorldImagery"),
+                     position = "topright",
+                     options = layersControlOptions(collapsed = FALSE)) %>% 
+    addCircleMarkers(stroke = F,
+                     fillOpacity = 0.8,
+                     radius = 5,
+                     color = ~ leaf_col(Region))
+  
+}
+
+```
+
+
+# Mean snow depth: Seasonal (Nov-May) {data-navmenu="Single station trends"}
+
+## Row {data-height=100}
+
+### Map info
+
+`r info_map1` 
+`r info_map2`
+
+### Scatter plot info
+
+`r info_trend1`
+`r info_trend2`
+
+## Row
+
+### Map
+
+```{r}
+shared_meanHS_NDJFMAM %>% f_leaf()
+```
+
+### Trend plot
+
+```{r}
+f_plot_season(shared_meanHS_NDJFMAM, 
+              "November-May mean HS [cm")
+```
+
+
+
+# Mean snow depth: Winter (Dec-Feb) {data-navmenu="Single station trends"}
+
+## Row {data-height=100}
+
+### Map info
+
+`r info_map1` 
+`r info_map2`
+
+### Scatter plot info
+
+`r info_trend1`
+`r info_trend2`
+
+## Row
+
+### Map
+
+```{r}
+shared_meanHS_DJF %>% f_leaf()
+```
+
+### Trend plot
+
+```{r}
+f_plot_season(shared_meanHS_DJF, 
+              "December-February mean HS [cm")
+```
+
+# Mean snow depth: Spring (Mar-May) {data-navmenu="Single station trends"}
+
+## Row {data-height=100}
+
+### Map info
+
+`r info_map1` 
+`r info_map2`
+
+### Scatter plot info
+
+`r info_trend1`
+`r info_trend2`
+
+## Row
+
+### Map
+
+```{r}
+shared_meanHS_MAM %>% f_leaf()
+```
+
+### Trend plot
+
+```{r}
+f_plot_season(shared_meanHS_MAM, 
+              "March-May mean HS [cm")
+```
 
 
 
 
-Update in progress...
+# Maximum snow depth: Seasonal (Nov-May) {data-navmenu="Single station trends"}
+
+## Row {data-height=100}
+
+### Map info
+
+`r info_map1` 
+`r info_map2`
+
+### Scatter plot info
+
+`r info_trend1`
+`r info_trend2`
+
+## Row
+
+### Map
+
+```{r}
+shared_maxHS_NDJFMAM %>% f_leaf()
+```
+
+### Trend plot
+
+```{r}
+f_plot_season(shared_maxHS_NDJFMAM, 
+              "November-May maximum HS [cm")
+```
+
+
+
+# Snow cover duration: Seasonal (Nov-May) {data-navmenu="Single station trends"}
+
+## Row {data-height=100}
+
+### Map info
+
+`r info_map1` 
+`r info_map2`
+
+### Scatter plot info
+
+`r info_trend1`
+`r info_trend2`
+
+## Row
+
+### Map
+
+```{r}
+shared_SCD_NDJFMAM %>% f_leaf()
+```
+
+### Trend plot
+
+```{r}
+f_plot_season(shared_SCD_NDJFMAM, 
+              "November-May SCD [days")
+```
+
+
+
+
+# Snow cover duration: Winter (Nov-Feb) {data-navmenu="Single station trends"}
+
+## Row {data-height=100}
+
+### Map info
+
+`r info_map1` 
+`r info_map2`
+
+### Scatter plot info
+
+`r info_trend1`
+`r info_trend2`
+
+## Row
+
+### Map
+
+```{r}
+shared_SCD_NDJF %>% f_leaf()
+```
+
+### Trend plot
+
+```{r}
+f_plot_season(shared_SCD_NDJF, 
+              "November-February SCD [days")
+```
+
+
+
+
+
+# Snow cover duration: Spring (Mar-May) {data-navmenu="Single station trends"}
+
+## Row {data-height=100}
+
+### Map info
+
+`r info_map1` 
+`r info_map2`
+
+### Scatter plot info
+
+`r info_trend1`
+`r info_trend2`
+
+## Row
+
+### Map
+
+```{r}
+shared_SCD_MAM %>% f_leaf()
+```
+
+### Trend plot
+
+```{r}
+f_plot_season(shared_SCD_MAM, 
+              "March-May SCD [days")
+```
+
+
+
+
+
+# Mean snow depth: November {data-navmenu="Single station trends"}
+
+## Row {data-height=100}
+
+### Map info
+
+`r info_map1` 
+`r info_map2`
+
+### Scatter plot info
+
+`r info_trend1`
+`r info_trend2`
+
+## Row
+
+### Map
+
+```{r}
+shared_nov %>% f_leaf()
+```
+
+### Trend plot
+
+```{r}
+f_plot_month(shared_nov, 11)
+```
+
+
+# Mean snow depth: December  {data-navmenu="Single station trends"}
+
+## Row {data-height=100}
+
+### Map info
+
+`r info_map1` 
+`r info_map2`
+
+### Scatter plot info
+
+`r info_trend1`
+`r info_trend2`
+
+## Row
+
+### Map
+
+```{r}
+shared_dec %>% f_leaf()
+```
+
+### Trend plot
+
+```{r}
+f_plot_month(shared_dec, 12)
+```
+
+
+
+# Mean snow depth: January  {data-navmenu="Single station trends"}
+
+## Row {data-height=100}
+
+### Map info
+
+`r info_map1` 
+`r info_map2`
+
+### Scatter plot info
+
+`r info_trend1`
+`r info_trend2`
+
+## Row
+
+### Map
+
+```{r}
+shared_jan %>% f_leaf()
+```
+
+### Trend plot
+
+```{r}
+f_plot_month(shared_jan, 1)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Mean snow depth: February  {data-navmenu="Single station trends"}
+
+## Row {data-height=100}
+
+### Map info
+
+`r info_map1` 
+`r info_map2`
+
+### Scatter plot info
+
+`r info_trend1`
+`r info_trend2`
+
+## Row
+
+### Map
+
+```{r}
+shared_feb %>% f_leaf()
+```
+
+### Trend plot
+
+```{r}
+f_plot_month(shared_feb, 2)
+```
+
+
+
+
+# Mean snow depth: March  {data-navmenu="Single station trends"}
+
+## Row {data-height=100}
+
+### Map info
+
+`r info_map1` 
+`r info_map2`
+
+### Scatter plot info
+
+`r info_trend1`
+`r info_trend2`
+
+## Row
+
+### Map
+
+```{r}
+shared_mar %>% f_leaf()
+```
+
+### Trend plot
+
+```{r}
+f_plot_month(shared_mar, 3)
+```
+
+
+
+
+# Mean snow depth: April  {data-navmenu="Single station trends"}
+
+## Row {data-height=100}
+
+### Map info
+
+`r info_map1` 
+`r info_map2`
+
+### Scatter plot info
+
+`r info_trend1`
+`r info_trend2`
+
+## Row
+
+### Map
+
+```{r}
+shared_apr %>% f_leaf()
+```
+
+### Trend plot
+
+```{r}
+f_plot_month(shared_apr, 4)
+```
+
+
+
+
+# Mean snow depth: May  {data-navmenu="Single station trends"}
+
+## Row {data-height=100}
+
+### Map info
+
+`r info_map1` 
+`r info_map2`
+
+### Scatter plot info
+
+`r info_trend1`
+`r info_trend2`
+
+## Row
+
+### Map
+
+```{r}
+shared_may %>% f_leaf()
+```
+
+### Trend plot
+
+```{r}
+f_plot_month(shared_may, 5)
+```
+
+
+
+
+# Station time series
+
+## Row {data-height=150}
+
+### Map info 
+
+Clicking on a station will show its name, elevation, coordinates, and links to pre-made time series plots.
+
+Stations whose circles have an outline have full data for the whole period 1971-2019, while the stations without outline contain gaps.
+
+
+## Row
+
+### Map 
+
+```{r}
+
+
+# addLegendCustom() from: https://stackoverflow.com/questions/52812238/custom-legend-with-r-leaflet-circles-and-squares-in-same-plot-legends
+addLegendCustom <- function(map, colors, labels, sizes, shapes, borders, opacity = 0.5){
+  
+  make_shapes <- function(colors, sizes, borders, shapes) {
+    shapes <- gsub("circle", "50%", shapes)
+    shapes <- gsub("square", "0%", shapes)
+    paste0(colors, "; width:", sizes, "px; height:", sizes, "px; border:3px solid ", borders, "; border-radius:", shapes)
+  }
+  make_labels <- function(sizes, labels) {
+    paste0("<div style='display: inline-block;height: ", 
+           sizes, "px;margin-top: 4px;line-height: ", 
+           sizes, "px;'>", labels, "</div>")
+  }
+  
+  legend_colors <- make_shapes(colors, sizes, borders, shapes)
+  legend_labels <- make_labels(sizes, labels)
+  
+  return(addLegend(map, colors = legend_colors, labels = legend_labels, opacity = opacity))
+}
+
+
+stn_trend <- sort(unique(c(dat_plot_month$Name, 
+                           dat_plot_season_hs$Name,
+                           dat_plot_season_scd$Name)))
+
+dat_meta_ts <- readRDS(here::here("data/meta-with-cluster-01.rds"))
+dat_meta_ts[, stn_long := ifelse(Name %in% stn_trend, "trend", "region")]
+dat_meta_ts[, leaf_opac := ifelse(Name %in% stn_trend, 0.8, 0.4)]
+dat_meta_ts[, leaf_rad := ifelse(Name %in% stn_trend, 6, 4)]
+
+dat_meta_ts[, popup_html := paste0(
+  Name, "<br>", 
+  Elevation, "m <br>", 
+  round(Longitude, 3), "°E ", round(Latitude, 3), "°N <br><br>",
+  '<a href="../past-snow/ts-season/', Name, '.png" target="_blank">Seasonal snow indices <i class="fa fa-external-link-alt"></i></a><br><br>',
+  '<a href="../past-snow/ts-month/', Name, '.png" target="_blank">Monthly mean snow depth <i class="fa fa-external-link-alt"></i></a><br>'
+)]
+sf_meta_ts <- st_as_sf(dat_meta_ts,
+                          coords = c("Longitude", "Latitude"),
+                          crs = 4326)
+
+
+
+leaflet() %>% 
+  addProviderTiles("CartoDB.Positron", group = "CartoDB") %>% 
+  addProviderTiles("Esri.WorldTopoMap", group = "Topomap") %>% 
+  addProviderTiles("Esri.WorldImagery", group = "WorldImagery") %>% 
+  addLayersControl(baseGroups = c("CartoDB", "Topomap", "WorldImagery")) %>% 
+  
+  addCircleMarkers(data = sf_meta_ts %>% filter(stn_long == "region"),
+                   color = ~leaf_col(cluster_fct),
+                   stroke = F, 
+                   radius = 5,
+                   fillOpacity = 0.4,
+                   popup = ~popup_html) %>% 
+  addCircleMarkers(data = sf_meta_ts %>% filter(stn_long == "trend"),
+                   color = ~leaf_col(cluster_fct),
+                   stroke = T, 
+                   weight = 2,
+                   radius = 5,
+                   opacity = 0.8,
+                   fillOpacity = 0.4,
+                   popup = ~popup_html) %>% 
+  addLegendCustom(colors = "gray",
+                  labels = c("Full period 1971-2019 available", "With gaps"),
+                  sizes = 20,
+                  shapes = "circle",
+                  borders = c("black", "white"))
+```
+
 
 
 

@@ -478,7 +478,10 @@ tbl_elev <- readRDS("data/mountain-background.rds")
 tbl_elev_sub <- tbl_elev[170: 450, ] %>% 
   dplyr::mutate(elev_scaled = ifelse(elev_rollmean > 1000,
                                      elev_rollmean/max(elev_rollmean)*4500,
-                                     elev_rollmean))
+                                     elev_rollmean)) %>% 
+  dplyr::mutate(elev_scaled = ifelse(elev_scaled < 4000 & ii < 280,
+                                     scales::rescale(elev_scaled, to = c(-100, 4000)),
+                                     elev_scaled))
 
 
 
@@ -803,6 +806,130 @@ ggplotly(
     ylab("Elevation [m]")
 ) %>% 
   highlight(on = "plotly_selected", off = "plotly_relayout")
+
+
+
+
+
+# legend clim plot --------------------------------------------------------
+
+
+leaflet() %>% 
+  addProviderTiles("CartoDB.Positron", group = "CartoDB") %>% 
+  addProviderTiles("Esri.WorldTopoMap", group = "Topomap") %>% 
+  addProviderTiles("Esri.WorldImagery", group = "WorldImagery") %>% 
+
+  addCircleMarkers(data = sf_meta,
+                   stroke = F,
+                   fillOpacity = 0.8,
+                   radius = 5,
+                   color = ~ leaf_col(Region),
+                   group = "In-situ snow depth regions") %>% 
+  addLegendFactor(pal = leaf_col, 
+            values = sf_meta$Region,
+            shape = "line",
+            # width = 20, height = 20,
+            opacity = 0.8,
+            title = "In-situ snow depth regions",
+            position = "bottomleft",
+            group = "In-situ snow depth regions")
+
+
+# legend for ts plot ------------------------------------------------------
+
+
+
+sf_meta_ts <- sf_meta_ts %>% 
+  mutate(col = cols_cluster[cluster_fct],
+         icon = if_else(stn_long == "region",
+                        "plus",
+                        "asterisk"))
+
+my_icons <- awesomeIcons(icon = sf_meta_ts$icon,
+                          markerColor = sf_meta_ts$color,
+                          library = "glyphicon")
+
+
+sf_meta_ts %>% 
+  leaflet() %>% 
+  addProviderTiles("Esri.WorldTopoMap") %>% 
+  addAwesomeMarkers(icon = my_icons)
+
+
+
+
+
+# numPal <- colorNumeric('viridis', quakes$mag)
+symbols <- makeSizeIcons(values = sf_meta_ts$Elevation,
+                         shape = 'plus',
+                         pal = leaf_col,
+                         color = 'black',
+                         colorValues = sf_meta_ts$cluster_fct,
+                         baseSize = 10,
+                         opacity = .5)
+# symbols <- makeSymbolIcons(color = )
+
+sf_meta_ts %>% 
+  leaflet()
+
+
+dat_meta_clust[, stn_long := ifelse(Name %in% stn_trend, "trend", "region")]
+dat_meta_clust[, leaf_opac := ifelse(Name %in% stn_trend, 0.8, 0.4)]
+dat_meta_clust[, leaf_rad := ifelse(Name %in% stn_trend, 6, 4)]
+
+leaflet() %>% 
+  addProviderTiles("CartoDB.Positron", group = "CartoDB") %>% 
+  addProviderTiles("Esri.WorldTopoMap", group = "Topomap") %>% 
+  addProviderTiles("Esri.WorldImagery", group = "WorldImagery") %>% 
+  
+  addLayersControl(baseGroups = c("CartoDB", "Topomap", "WorldImagery")) %>% 
+
+  addCircleMarkers(data = sf_meta_ts %>% filter(stn_long == "region"),
+                   color = ~leaf_col(cluster_fct),
+                   stroke = F, 
+                   radius = 5,
+                   fillOpacity = 0.4,
+                   popup = ~popup_html) %>% 
+  addCircleMarkers(data = sf_meta_ts %>% filter(stn_long == "trend"),
+                   color = ~leaf_col(cluster_fct),
+                   stroke = T, 
+                   weight = 2,
+                   radius = 5,
+                   opacity = 0.8,
+                   fillOpacity = 0.4,
+                   popup = ~popup_html) %>% 
+  addLegendCustom(colors = "gray",
+                  labels = c("trend", "region"),
+                  sizes = 10,
+                  shapes = "circle",
+                  borders = c("white", "black"))
+
+# set legend features
+colors <- c("red", "white", "blue", "white", "blue", "red")
+labels <- c("filled_square", "empty_square", "big_square", "empty_circle", "filled_circle", "big_circle")
+sizes <- c(10, 20, 30, 10, 20, 30)
+shapes <- c("square", "square", "square", "circle", "circle", "circle")
+borders <- c("red", "blue", "black", "blue", "blue", "black")
+
+addLegendCustom <- function(map, colors, labels, sizes, shapes, borders, opacity = 0.5){
+  
+  make_shapes <- function(colors, sizes, borders, shapes) {
+    shapes <- gsub("circle", "50%", shapes)
+    shapes <- gsub("square", "0%", shapes)
+    paste0(colors, "; width:", sizes, "px; height:", sizes, "px; border:3px solid ", borders, "; border-radius:", shapes)
+  }
+  make_labels <- function(sizes, labels) {
+    paste0("<div style='display: inline-block;height: ", 
+           sizes, "px;margin-top: 4px;line-height: ", 
+           sizes, "px;'>", labels, "</div>")
+  }
+  
+  legend_colors <- make_shapes(colors, sizes, borders, shapes)
+  legend_labels <- make_labels(sizes, labels)
+  
+  return(addLegend(map, colors = legend_colors, labels = legend_labels, opacity = opacity))
+}
+
 
 # EOF ---------------------------------------------------------------------
 
