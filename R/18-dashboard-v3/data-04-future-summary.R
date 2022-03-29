@@ -14,8 +14,8 @@ library(officer)
 
 
 # elev_int <- 100 
-# elev_int <- 200
-elev_int <- 500
+elev_int <- 200
+# elev_int <- 500
 
 # breaks
 
@@ -90,6 +90,54 @@ dat_modis2 <- dat_modis[lgl_icell_common & lgl_icell_noglacier,
 # dat_modis2 %>% ggplot(aes(scd, elev_f))+geom_point()
 
 
+
+## 2041-2070 ---------------------------------------------------------------
+
+
+# qdm data 
+
+x <- "/mnt/CEPH_PROJECTS/CLIRSNOW/data_bc/ds/bc_full_clim_2041_2070/03_qdm/"
+dat_loop <- data.table(bc_var = path_file(x),
+                       file_rcm = dir_ls(x))
+
+dat_loop[, c("institute_rcm", "gcm", "experiment", "ensemble", "dsr", "fp") := 
+           tstrsplit(path_ext_remove(path_file(file_rcm)), "_")]
+
+# dat_loop2 <- dat_loop[institute_rcm %in% rcms_common & fp == "future"]
+dat_loop2 <- dat_loop[institute_rcm %in% rcms_common]
+
+
+dat_ds_41 <- foreach(
+  i = seq_len(nrow(dat_loop2)),
+  .final = rbindlist
+) %do% {
+  
+  # i_rcm <- dat_loop_rcm[i, institute_rcm]
+  
+  i_rr <- raster(dat_loop2[i, file_rcm])
+  
+  dat_i <- data.table(dat_modis[, .(icell, elev, elev_f)],
+                      scd = i_rr[])
+  
+  dat_i2 <- dat_i[lgl_icell_common & lgl_icell_noglacier,  # 
+                  .(scd = mean(scd),
+                    nn = .N),
+                  .(elev_f)]
+  
+  dat_i3 <- dat_i2 %>% 
+    cbind(dat_loop2[i, ])
+  dat_i3[, file_rcm := NULL]
+  dat_i3
+  
+  
+}
+
+
+
+
+## 2071-2100 ---------------------------------------------------------------
+
+
 # qdm data 
 
 x <- "/mnt/CEPH_PROJECTS/CLIRSNOW/data_bc/ds/bc_full_clim/03_qdm/"
@@ -103,7 +151,7 @@ dat_loop[, c("institute_rcm", "gcm", "experiment", "ensemble", "dsr", "fp") :=
 dat_loop2 <- dat_loop[institute_rcm %in% rcms_common]
 
 
-dat_ds <- foreach(
+dat_ds_71 <- foreach(
   i = seq_len(nrow(dat_loop2)),
   .final = rbindlist
 ) %do% {
@@ -132,6 +180,42 @@ dat_ds <- foreach(
 
 # alpine wide: BC ensemble ------------------------------------------------
 
+
+# 2041-2070 ---------------------------------------------------------------
+
+
+load("/mnt/CEPH_PROJECTS/CLIRSNOW/data_bc/rds/bc_full_2041_2070/clim-02.rda")
+dat_aux <- readRDS("~/projects-r/clirsnow-bc/data/auxiliary-03-modis.rds")
+
+
+# only take pixels in common to all RCMs
+dat_th <- readRDS("~/projects-r/clirsnow-bc/data/auxiliary-02-snow-max-threshold.rds")
+dat_th[snow_plausible == "yes" & 
+         rcm %in% rcms_common] %>% 
+  dcast(icell ~ rcm_short, value.var = "snow_plausible") %>% 
+  na.omit %>% 
+  .[, icell] -> icell_common_rcm
+icell_modis <- sort(unique(clim_modis$icell))
+icell_common <- intersect(icell_common_rcm, icell_modis)
+
+
+# elev means
+dat_aux[, alt_f := cut(alt, breaks = l_breaks$bc, dig.lab = 5)]
+
+clim_qdm2 <- merge(clim_qdm[icell %in% icell_common], 
+                   dat_aux, by = "icell")
+
+dat_bc <- clim_qdm2[,
+                    .(snc = mean(snc_qdm),
+                      nn = .N),
+                    .(alt_f, rcm, gcm, experiment, fp)]
+
+dat_bc_41 <- dat_bc[rcm %in% rcms_common]
+
+
+# 2071-2100 ---------------------------------------------------------------
+
+
 load("/mnt/CEPH_PROJECTS/CLIRSNOW/data_bc/rds/bc_full/clim-02.rda")
 dat_aux <- readRDS("~/projects-r/clirsnow-bc/data/auxiliary-03-modis.rds")
 
@@ -158,45 +242,45 @@ dat_bc <- clim_qdm2[,
                       nn = .N),
                     .(alt_f, rcm, gcm, experiment, fp)]
 
-dat_bc <- dat_bc[rcm %in% rcms_common]
+dat_bc_71 <- dat_bc[rcm %in% rcms_common]
 
 
 # diff --------------------------------------------------------------------
 
-dat_bc_diff <- dat_bc[fp == "future"] %>% 
-  merge(dat_bc[fp == "past", .(alt_f, rcm, gcm, experiment, nn, snc_ref = snc)])
+dat_bc_71_diff <- dat_bc_71[fp == "future"] %>%
+  merge(dat_bc_71[fp == "past", .(alt_f, rcm, gcm, experiment, nn, snc_ref = snc)])
 
 
-dat_bc_diff[, snc_diff := snc - snc_ref]
-dat_bc_diff[, snc_diff_rel := (snc - snc_ref)/snc_ref]
-dat_bc_diff[, elev := tstrsplit(alt_f, ",") %>% sapply(readr::parse_number) %>% rowMeans,]
+dat_bc_71_diff[, snc_diff := snc - snc_ref]
+dat_bc_71_diff[, snc_diff_rel := (snc - snc_ref)/snc_ref]
+dat_bc_71_diff[, elev := tstrsplit(alt_f, ",") %>% sapply(readr::parse_number) %>% rowMeans,]
 
 
-dat_ds_diff <- dat_ds[fp == "future"] %>% 
-  merge(dat_ds[fp == "past", .(elev_f, institute_rcm, gcm, experiment, nn, scd_ref = scd)])
+dat_ds_71_diff <- dat_ds_71[fp == "future"] %>%
+  merge(dat_ds_71[fp == "past", .(elev_f, institute_rcm, gcm, experiment, nn, scd_ref = scd)])
 
 
-dat_ds_diff[, scd_diff := scd - scd_ref]
-dat_ds_diff[, scd_diff_rel := (scd - scd_ref)/scd_ref]
-dat_ds_diff[, elev := tstrsplit(elev_f, ",") %>% sapply(readr::parse_number) %>% rowMeans,]
-
-# numbers -----------------------------------------------------------------
+dat_ds_71_diff[, scd_diff := scd - scd_ref]
+dat_ds_71_diff[, scd_diff_rel := (scd - scd_ref)/scd_ref]
+dat_ds_71_diff[, elev := tstrsplit(elev_f, ",") %>% sapply(readr::parse_number) %>% rowMeans,]
 
 
-dat_bc_diff[, weighted.mean(snc_diff, nn), experiment]
-dat_bc_diff[, round(100 * weighted.mean(snc_diff, nn) / weighted.mean(snc_ref, nn), 1), experiment]
+# combine & save --------------------------------------------------------------------
 
 
-dat_ds_diff[, weighted.mean(scd_diff, nn), experiment]
-dat_ds_diff[, round(100 * weighted.mean(scd_diff, nn) / weighted.mean(scd_ref, nn), 1), experiment]
-
+dat_bc <- rbindlist(list("2001-2020" = dat_bc_41[fp == "past"],
+                         "2041-2070" = dat_bc_41[fp == "future"],
+                         "2071-2100" = dat_bc_71[fp == "future"]),
+                    idcol = "period")
 
 
 
-# save --------------------------------------------------------------------
+dat_ds <- rbindlist(list("2001-2020" = dat_ds_41[fp == "past"],
+                         "2041-2070" = dat_ds_41[fp == "future"],
+                         "2071-2100" = dat_ds_71[fp == "future"]),
+                    idcol = "period")
 
-
-save(dat_bc_diff, dat_ds_diff,
+save(dat_bc_71_diff, dat_ds_71_diff, dat_bc, dat_ds,
      file = paste0("data/future-summary-elev-", elev_int ,"m.rda"))
 
 
