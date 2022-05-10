@@ -7,4 +7,5 @@ fig/
 manual-qc/
 R/18-dashboard-v3/libs/
 R/18-dashboard-v3/*.html
+R/18-dashboard-v3/*_files
 data-raw/
