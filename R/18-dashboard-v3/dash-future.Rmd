@@ -1,28 +1,240 @@
 ---
-title: "CliRSnow"
+title: "Future snow | CliRSnow"
 output: 
   flexdashboard::flex_dashboard:
     self_contained: false
     lib_dir: libs
+    fig_mobile: false
     theme: bootstrap
-    orientation: rows
+    orientation: columns
     vertical_layout: fill
     social: menu
     source: embed
     logo: other/logo_72x48.png
+    favicon: other/logo_72x48.png
     navbar:
-      - { title: "Back to main dashboard", href: "./", align: right }
-      - { title: "Back to CliRSnow homepage", href: "/", align: right }
+      - { icon: "fa-share", title: "Main Dash", href: "./", align: right }
 ---
 
 ```{r setup, include=FALSE}
 library(flexdashboard)
-library(leaflet)
+library(data.table)
+library(forcats)
+library(magrittr)
+library(ggplot2)
+
 ```
 
 
-## Row
+```{r, include=TRUE}
+htmltools::tagList(fontawesome::fa_html_dependency())
+```
 
-Will be published online once the [associated paper](https://hess.copernicus.org/preprints/hess-2021-449/) has successfully passed peer-review.
+
+```{r data-prep-summary}
+load(here::here("data/future-summary-elev-500m.rda"))
+
+setnames(dat_bc, "alt_f", "elev_f")
+dat_bc[, elev := tstrsplit(elev_f, ",") %>% sapply(readr::parse_number) %>% rowMeans]
+dat_ds[, elev := tstrsplit(elev_f, ",") %>% sapply(readr::parse_number) %>% rowMeans]
+
+dat_ens_mean <- dat_ds[elev > 200 & elev < 3600,
+                       .(scd = round(mean(scd))),
+                       .(elev_f, elev, experiment, period, fp)]
+
+
+# dat_ens_mean <- dat_bc[elev > 200 & elev < 3600,
+#                        .(scd = mean(snc)*365),
+#                        .(elev_f, elev, experiment, period, fp)]
+
+dat_ens_mean[, period_f := fct_recode(period,
+                                      "2001\n-\n2020" = "2001-2020",
+                                      "2041\n-\n2070" = "2041-2070",
+                                      "2071\n-\n2100" = "2071-2100")]
+
+dat_ens_mean[period != "2041-2070"] %>% 
+  dcast(elev ~ experiment + fp, value.var = "scd") -> dat_lollipop
+
+dat_lollipop[, elev_fct := fct_inorder(paste0(elev, " m"))]
+
+dat_lollipop[, .(elev,
+                 v1 = rcp85_future, 
+                 v2 = rcp26_future - rcp85_future,
+                 v3 = rcp26_past - rcp26_future)] %>% 
+  melt(id.vars = "elev",
+       measure.vars = paste0("v", 1:3)) %>% 
+  .[,
+    .(i_dot_grp = 1:round(value)),
+    .(elev, variable)] -> dat_dp
+
+
+dat_dp[, i_dot := 1:.N - 1, elev]
+dat_dp[, xx := i_dot %% 10]
+dat_dp[, yy := i_dot %/% 10]
+```
+
+
+
+# Summary
+
+## Column
+
+### What can be saved? The impact of climate action on 21st century snow cover duration in the Alps.
+
+```{r fig.width=7, fig.height=4}
+x_rat <- 80
+elev_plot <- c(500, 1500, 2500, 3500)
+
+dat_dp[, xx_plot := elev + x_rat*xx - 9*x_rat/2]
+
+
+dat_text <- dat_lollipop[elev %in% elev_plot,
+                         .(elev, 
+                           yy = ceiling(rcp26_past/10) + 1.5, 
+                           past = round(rcp26_past),
+                           loss = round(rcp26_past - rcp26_future),
+                           climact = round(rcp26_future - rcp85_future))]
+dat_text[, past_ch := sprintf("%6s", past)]
+dat_text[, loss_ch := sprintf("%5s", loss)]
+dat_text[, climact_ch := sprintf("%5s", climact)]
+
+
+
+
+dat_dp[elev %in% elev_plot] %>% 
+  ggplot(aes(xx_plot, yy+0.5))+
+  geom_hline(yintercept = 0:12*3, colour = grey(0.8), size = 0.2)+ # 1 month
+  
+  geom_point(shape = "\u2744", size = 2.5, colour = "#9ecae1")+
+  geom_point(data = dat_dp[elev %in% elev_plot & variable == "v3"] ,
+             shape = 4, size = 1.5, colour = "black")+
+  geom_point(data = dat_dp[elev %in% elev_plot & variable == "v2"] ,
+             shape = 1, size = 2, colour = "#e6550d")+
+  geom_text(data = dat_dp[elev %in% elev_plot & variable == "v2"] ,
+            label = "?", fontface = "plain", size = 2, colour = "#e6550d")+
+  cowplot::theme_cowplot(line_size = 0.2)+
+  scale_x_continuous(NULL, limits = c(0, 4000), expand = c(0,0),
+                     breaks = elev_plot, labels = paste0(elev_plot, " m"))+
+  # scale_y_continuous(NULL, breaks = c(0,10,20,30), labels = c(0,10,20,30)*10)+
+  scale_y_continuous(NULL, limits = c(0, 36.2 + 2), expand = c(0,0),
+                     breaks = c(0,9,18,27,36), labels = c(0,9,18,27,36)*10)+
+  ggtitle("Days with snow on ground in the Alps",
+          "Impact of global warming and climate action for end of century (2071-2100) snow cover")+
+  
+  #legend
+  annotate("rect", xmin = 50, xmax = 2500, ymin = 28.5, ymax = 37.5, 
+           colour = "white", fill = "white")+
+  annotate("point", 100, 36, shape = "\u2744", size = 5, colour = "#9ecae1")+
+  annotate("text", 150, 36, hjust = 0, vjust = 0.5, size = 3, 
+           label = "Day with snow on ground, recent (2001-2020)", colour = "#9ecae1")+
+  
+  annotate("point", 100, 33, shape = 4, size = 3, colour = "black")+
+  annotate("text", 150, 33, hjust = 0, vjust = 0.5, size = 3, 
+           label = "Future loss if global warming is 1.5-2°C (commited loss)", colour = "black")+
+  
+  annotate("point", 100, 30, shape = 1, size = 4, colour = "#e6550d")+
+  annotate("text", 100, 30, label = "?", fontface = "plain", size = 4, colour = "#e6550d")+
+  annotate("text", 150, 30, hjust = 0, vjust = 0.5, size = 3,
+           label = "Extra loss if global warming is 4-5°C (can be saved with climate action)",
+           colour = "#e6550d")+
+  
+  # grid stuff
+  annotate("segment", x = 1000, xend = 1000, y = 18, yend = 15, colour = grey(0.8),
+           arrow = arrow(ends = "both", type = "closed", length = unit(0.075, "in")))+
+  annotate("text", x = 1000, y = 16.5, hjust = -0.1, size = 3,
+           label = "(~1 month)", colour = grey(0.8))+
+  annotate("text", x = 1000, y = 16.5, hjust = 1.2, size = 3,
+           label = "30 days", colour = grey(0.8))+
+  
+  # text
+  geom_label(data = dat_text, 
+            aes(elev - 270, yy, label = past_ch),
+            hjust = 0.5, vjust = 0.5, colour = "#9ecae1", size = 3, 
+            label.padding = unit(0.15, "lines"), label.size = 0.12)+
+  geom_point(data = dat_text, 
+             aes(elev - 270 - 60, yy),
+             shape = "\u2744", size = 3, colour = "#9ecae1")+
+  geom_label(data = dat_text, 
+             aes(elev, yy, label = loss_ch),
+             hjust = 0.5, vjust = 0.5, colour = "black", size = 3,
+             label.padding = unit(0.15, "lines"), label.size = 0.12)+
+  geom_point(data = dat_text, 
+             aes(elev - 50, yy),
+             shape = 4, size = 2, colour = "black")+
+  geom_label(data = dat_text, 
+             aes(elev + 250, yy, label = climact_ch),
+             hjust = 0.5, vjust = 0.5, colour = "#e6550d", size = 3,
+             label.padding = unit(0.15, "lines"), label.size = 0.12)+
+  geom_point(data = dat_text, 
+             aes(elev + 250 - 50, yy),
+             shape = 1, size = 3, colour = "#e6550d")+
+  geom_text(data = dat_text, 
+            aes(elev + 250 - 50, yy, label = "?"),
+            size = 3, colour = "#e6550d")
+
+```
+
+
+
+
+
+
+
+# Maps
+
+## Column
+
+### All maps
+
+Open map of current (2001-2020) average annual snow cover duration (SCD). Click on any point to show associated value. Use layers control on left to toggle between current and future SCD under different greenhouse gas concentration scenarios.
+
+
+  - RCP2.6 ~ 1.5-2°C global warming
+  - RCP8.5 ~ 4-5°C global warming
+  
+
+<a href="https://maps.eurac.edu/maps/722/view" class="btn btn-primary" role="button">All maps (default 2001-2020) <span class="glyphicon glyphicon-new-window" aria-hidden="true"></span></a>
+
+  
+## Column
+
+### Sliders (present vs. ...)
+
+Open slider with two maps in background comparing the present snow cover duration to the future under different greenhouse gas (GHG) concentration scenarios, the so-called representative concentration pathways [(RCP)](https://en.wikipedia.org/wiki/Representative_Concentration_Pathway).
+
+
+
+#### 2041-2070 vs. 2001-2020
+
+<a href="http://sdi.eurac.edu/slider/clirsnow_future_rcp26_2041_2070.html" class="btn btn-warning" role="button">1.5-2°C (RCP2.6) <span class="glyphicon glyphicon-new-window" aria-hidden="true"></span></a>
+
+<a href="http://sdi.eurac.edu/slider/clirsnow_future_rcp85_2041_2070.html" class="btn btn-danger" role="button">4-5°C (RCP8.5) <span class="glyphicon glyphicon-new-window" aria-hidden="true"></span></a>
+
+
+#### 2071-2100 vs. 2001-2020
+  
+<a href="http://sdi.eurac.edu/slider/clirsnow_future_rcp26_2071_2100.html" class="btn btn-warning" role="button">1.5-2°C (RCP2.6) <span class="glyphicon glyphicon-new-window" aria-hidden="true"></span></a>
+
+<a href="http://sdi.eurac.edu/slider/clirsnow_future_rcp85_2071_2100.html" class="btn btn-danger" role="button">4-5°C (RCP8.5) <span class="glyphicon glyphicon-new-window" aria-hidden="true"></span></a>
+
+
+
+
+## Column
+
+### Sliders (low vs. high GHG concentrations)
+
+Open sliders with maps in the background that compare the difference between climate action and rising greenhouse gas (GHG) concentrations for two future periods. 
+
+Climate action corresponds to RCP2.6, which is 1.5-2°C of global warming, while rising GHG corresponds to RCP8.5, which amounts to 4-5°C of global warming.
+
+#### Climate action vs. rising greenhouse gas concentrations
+
+<a href="http://sdi.eurac.edu/slider/clirsnow_future_rcp26_rcp85_2041_2070.html" class="btn btn-info" role="button">2041-2070 <span class="glyphicon glyphicon-new-window" aria-hidden="true"></span></a>
+
+<a href="http://sdi.eurac.edu/slider/clirsnow_future_rcp26_rcp85_2071_2100.html" class="btn btn-info" role="button">2071-2100 <span class="glyphicon glyphicon-new-window" aria-hidden="true"></span></a>
+
+
+
 
 

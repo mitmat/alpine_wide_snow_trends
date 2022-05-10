@@ -931,6 +931,585 @@ addLegendCustom <- function(map, colors, labels, sizes, shapes, borders, opacity
 }
 
 
+# future summary ----------------------------------------------------------
+
+library(data.table)
+library(forcats)
+load("data/future-summary-elev-500m.rda")
+
+setnames(dat_bc, "alt_f", "elev_f")
+dat_bc[, elev := tstrsplit(elev_f, ",") %>% sapply(readr::parse_number) %>% rowMeans]
+dat_ds[, elev := tstrsplit(elev_f, ",") %>% sapply(readr::parse_number) %>% rowMeans]
+
+dat_ens_mean <- dat_ds[elev > 200 & elev < 3600,
+                       .(scd = mean(scd)),
+                       .(elev_f, elev, experiment, period, fp)]
+
+
+# dat_ens_mean <- dat_bc[elev > 200 & elev < 3600,
+#                        .(scd = mean(snc)*365),
+#                        .(elev_f, elev, experiment, period, fp)]
+
+dat_ens_mean[, period_f := fct_recode(period,
+                                      "2001\n-\n2020" = "2001-2020",
+                                      "2041\n-\n2070" = "2041-2070",
+                                      "2071\n-\n2100" = "2071-2100")]
+
+
+dat_ens_mean %>% 
+  ggplot(aes(period, scd, colour = experiment))+
+  geom_point()+
+  geom_line(aes(group = paste0(elev, experiment)))+
+  theme_bw()
+
+dat_ens_mean %>% 
+  ggplot(aes(period, scd, colour = experiment))+
+  geom_point()+
+  geom_line(aes(group = paste0(elev, experiment)))+
+  theme_bw()+
+  facet_grid(elev_f ~ . , scales = "free_y", space = "free_y")
+
+
+dat_ens_mean %>% 
+  ggplot(aes(period_f, scd, colour = experiment))+
+  geom_point()+
+  geom_line(aes(group = paste0(elev, experiment)))+
+  theme_bw()+
+  facet_grid(. ~ elev)
+
+
+
+dat_ens_mean %>% 
+  ggplot(aes(scd, fct_rev(period), colour = experiment))+
+  geom_point()+
+  geom_line(aes(group = paste0(elev, experiment)))+
+  theme_bw()+
+  facet_grid(fct_rev(elev_f) ~ .)
+
+
+
+dat_ens_mean %>% 
+  ggplot(aes(period_f, scd, colour = experiment))+
+  # annotate("rect", xmin = -Inf, xmax = Inf, ymin = 0:5*60, ymax = 1:6*60 - 30, alpha = 0.1)+ # 1 month
+  geom_hline(yintercept = 0:12*30, alpha = 0.2)+ # 1 month
+  geom_point()+
+  geom_line(aes(group = paste0(elev, experiment)))+
+  scale_color_brewer(palette = "Set1")+
+  scale_y_continuous(expand = c(0,0), limits = c(0,360))+
+  facet_grid(. ~ elev)+
+  cowplot::theme_cowplot()
+
+
+dat_ens_mean[period != "2041-2070"] %>% 
+  dcast(elev ~ experiment + fp, value.var = "scd") -> dat_segment
+
+dat_ens_mean[period != "2041-2070"] %>% 
+  ggplot(aes(period_f, scd, colour = experiment))+
+  # annotate("rect", xmin = -Inf, xmax = Inf, ymin = 0:5*60, ymax = 1:6*60 - 30, alpha = 0.1)+ # 1 month
+  geom_hline(yintercept = 0:12*30, alpha = 0.2)+ # 1 month
+  geom_segment(data = dat_segment, inherit.aes = F,
+               aes(x = "2071\n-\n2100", xend = "2071\n-\n2100", 
+                   y = scd, yend = scd, alpha = experiment))+
+  geom_point()+
+  geom_point(data = dat_ens_mean[period == "2001-2020"], colour = "black")+
+  geom_line(aes(group = paste0(elev, experiment)))+
+  scale_color_brewer(palette = "Set1")+
+  scale_y_continuous(expand = c(0,0), limits = c(0,360))+
+  facet_grid(. ~ elev)+
+  cowplot::theme_cowplot()+
+  xlab(NULL)+
+  ylab("Snow cover duration [days]")
+
+
+
+# future summary lollipop -------------------------------------------------
+
+dat_ens_mean[period != "2041-2070"] %>% 
+  dcast(elev ~ experiment + fp, value.var = "scd") -> dat_lollipop
+
+dat_lollipop[, elev_fct := fct_inorder(paste0(elev, " m"))]
+
+rect_width <- 0.2
+
+# cols <- setNames(c("#3182bd", "#de2d26", "#fee090", grey(0.7)),
+#                  c("rcp26", "rcp85", "loss", "anno_month"))
+cols <- setNames(c("#377eb8", "#e41a1c", "#ff7f00", grey(0.7)),
+                 c("rcp26", "rcp85", "loss", "anno_month"))
+
+
+dat_lollipop %>% 
+  ggplot()+
+  
+  geom_vline(xintercept = 0:12*30, colour = cols["anno_month"])+ # 1 month
+  
+  geom_vline(aes(xintercept = rcp26_past))+
+  
+  geom_point(aes(x = rcp26_future, y = 3), colour = cols["rcp26"])+
+  geom_segment(aes(x = rcp26_future, xend = rcp26_past, y = 3, yend = 3), colour = cols["rcp26"])+
+  
+  # geom_errorbarh(aes(xmin = rcp85_future, xmax = rcp26_future, y = 2))+
+  geom_rect(aes(xmin = rcp85_future, xmax = rcp26_future,
+                ymin = 1 - rect_width, ymax = 1 + rect_width),
+            fill = cols["loss"])+
+  
+  geom_point(aes(x = rcp85_future, y = 2), colour = cols["rcp85"])+
+  geom_segment(aes(x = rcp85_future, xend = rcp26_past, y = 2, yend = 2), colour = cols["rcp85"])+
+
+  scale_x_continuous(limits = c(0, 360), expand = c(0, 0), breaks = 0:3*90)+
+  scale_y_continuous(breaks = 1:3, labels = c("RCP2.6 (1.5 - 2°C)",
+                                              "loss due to delay / no action",
+                                              "RCP8.5 (4 - 5°C)"),
+                     limits = c(0,4))+
+  facet_grid(elev_fct ~ ., as.table = F, switch = "y")+
+  cowplot::theme_cowplot()+
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        strip.placement = "outside",
+        strip.text.y.left = element_text(angle = 0))+
+  
+  ylab(NULL)+
+  xlab("Snow cover duration (SCD) [days]")+
+  
+  geom_text(data = data.frame(elev_fct = factor("1000 m", levels = levels(dat_lollipop$elev_fct))), 
+            x = 315, y = 1, label = "(~1 month)", colour = cols["anno_month"])+
+  geom_text(data = data.frame(elev_fct = factor("1000 m", levels = levels(dat_lollipop$elev_fct))), 
+            x = 315, y = 3, label = "30 days", colour = cols["anno_month"])+
+  geom_segment(data = data.frame(elev_fct = factor("1000 m", levels = levels(dat_lollipop$elev_fct))),
+               x = 300, xend = 330, y = 2, yend = 2, colour = cols["anno_month"],
+               arrow = arrow(ends = "both", type = "closed", length = unit(0.1, "in")))+
+  
+  geom_text(data = data.frame(elev_fct = factor("2000 m", levels = levels(dat_lollipop$elev_fct))), 
+            x = 180, y = 0, hjust = 0, vjust = 0,
+            label = "recent SCD")+
+  geom_text(data = data.frame(elev_fct = factor("2000 m", levels = levels(dat_lollipop$elev_fct))), 
+            x = 150, y = 3, hjust = 1, vjust = 0.5, colour = cols["rcp26"],
+            label = "future SCD with 1.5-2°C warming")+
+  geom_text(data = data.frame(elev_fct = factor("2000 m", levels = levels(dat_lollipop$elev_fct))), 
+            x = 105, y = 2, hjust = 1, vjust = 0.5, colour = cols["rcp85"],
+            label = "future SCD with 4-5°C warming")+
+  geom_text(data = data.frame(elev_fct = factor("2000 m", levels = levels(dat_lollipop$elev_fct))), 
+            x = 105, y = 1, hjust = 1, vjust = 0.5, colour = cols["loss"],
+            label = "SCD saved through climate action")+
+  
+  ggtitle("Recent (2001-2020) and future (2071-2100) snow cover duration by elevation")
+
+
+  # annotate("rect", xmin = -Inf, xmax = Inf, ymin = 0:5*60, ymax = 1:6*60 - 30, alpha = 0.1)+ # 1 month
+  
+
+
+
+  
+
+    
+
+# gauges with highcharts --------------------------------------------------
+
+library(highcharter)
+
+my_gauge <- function(val, min, max){
+  
+  col <- "#3182bd"
+  
+highchart() %>%
+  hc_chart(type = "solidgauge") %>%
+  hc_pane(
+    startAngle = -90,
+    endAngle = 90,
+    background = list(
+      outerRadius = '100%',
+      innerRadius = '60%',
+      shape = "arc"
+    )
+  ) %>%
+  hc_tooltip(enabled = FALSE) %>%
+  hc_yAxis(
+    # stops = list_parse2(col_stops),
+    minColor = col,
+    maxColor = col,
+    lineWidth = 0,
+    minorTickWidth = 0,
+    tickAmount = 2,
+    min = min,
+    max = max,
+    labels = list(y = 26, style = list(fontSize = "22px"),
+                  format = "{text} d")
+  ) %>%
+  hc_add_series(
+    data = val,
+    dataLabels = list(
+      format = paste0(-min+val, " d"),
+      y = -50,
+      borderWidth = 0,
+      useHTML = TRUE,
+      style = list(fontSize = "30px", color = col)
+    )
+  ) %>% 
+  hc_size(height = 300)
+
+}
+
+my_gauge(min = dat_gauge[elev == 1500, rcp85],
+         max = 0,
+         val = dat_gauge[elev == 1500, rcp26])
+
+
+
+# xrange ------------------------------------------------------------------
+
+
+library(lubridate)
+
+N <- 7
+set.seed(1234)
+
+df <- tibble(
+  start = Sys.Date() + months(sample(10:20, size = N)),
+  end = start + months(sample(1:3, size = N, replace = TRUE)),
+  cat = rep(1:5, length.out = N) - 1,
+  progress = round(stats::runif(N), 1)
+)
+
+df <- mutate_if(df, is.Date, datetime_to_timestamp)
+
+hchart(
+  df,
+  "xrange",
+  hcaes(x = start, x2 = end, y = cat, partialFill = progress),
+  dataLabels = list(enabled = TRUE)
+) %>% 
+  hc_xAxis(
+    title = FALSE,
+    type = "datetime"
+  ) %>% 
+  hc_yAxis(
+    title = FALSE,
+    categories = c("Prototyping", "Development", "Testing", "Validation", "Modelling")
+  )
+
+
+
+# future summary: dotplot --------------------------------------------------
+
+dat_lollipop[, .(elev,
+                 v1 = rcp85_future, 
+                 v2 = rcp26_future - rcp85_future,
+                 v3 = rcp26_past - rcp26_future)] %>% 
+  melt(id.vars = "elev",
+       measure.vars = paste0("v", 1:3)) %>% 
+  .[,
+    .(i_dot_grp = 1:round(value)),
+    .(elev, variable)] -> dat_dp
+
+
+dat_dp[, i_dot := 1:.N - 1, elev]
+dat_dp[, xx := i_dot %% 10]
+dat_dp[, yy := i_dot %/% 10]
+
+# dat_dp %>% 
+#   ggplot(aes(xx, y = 100, fill = variable))+
+#   geom_dotplot(stackgroups = T, binwidth = 1, method = "histodot")
+#   # scale_y_continuous(NULL, breaks = NULL)
+
+
+# cols <- setNames(c("#377eb8", "#e41a1c", "#ff7f00", grey(0.7)),
+#                  c("ss", "v2", "v3", "v1"))
+
+# cols <- setNames(c("#a6cee3", "#fdbf6f", "#b2df8a"),
+#                  c("v1", "v2", "v3"))
+
+cols <- setNames(c("#1f78b4", "#ff7f00", "#33a02c"),
+                 c("v1", "v2", "v3"))
+
+cols <- setNames(c(grey(0.8), "#ff7f00", "#33a02c"),
+                 c("v1", "v2", "v3"))
+
+dat_dp %>% 
+  ggplot(aes(xx, yy, colour = variable))+
+  geom_point(shape="\u2744", size = 5)+
+  scale_color_manual(values = cols)+
+  facet_grid(. ~ elev, switch = "x")+
+  cowplot::theme_cowplot()+
+  theme(#axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        strip.placement = "outside")+
+  xlab("Elevation [m]")+
+  scale_y_continuous(NULL, breaks = c(0,10,20,30), labels = c(0,10,20,30)*10)+
+  ggtitle("Days with snow on ground")
+
+
+# legend plot
+
+
+
+dat_dp2 <- rbind(dat_dp[elev == 1500, 
+                        .(ff = "present", variable = "v1", xx, yy)],
+                 dat_dp[elev == 1500, 
+                        .(ff = "future1", variable = ifelse(variable == "v3", "v3", "v1"), xx, yy)],
+                 dat_dp[elev == 1500 & variable != "v3", 
+                        .(ff = "future2", variable, xx, yy)])
+dat_dp2[, ff := fct_inorder(ff)]
+
+dat_dp2 %>% 
+  ggplot(aes(xx, yy, colour = variable))+
+  geom_point(shape="\u2744", size = 5)+
+  scale_color_manual(values = cols)+
+  # scale_size_manual(values = c(3, 5, 5))+
+  facet_grid(. ~ ff)+
+  cowplot::theme_cowplot()+
+  theme(#axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    strip.placement = "outside")
+  
+dat_dp3 <- rbind(dat_dp[elev == 1500, 
+                        .(ff = "present", variable = "v1", xx, yy)],
+                 dat_dp[elev == 1500& variable != "v1", 
+                        .(ff = "future1" , variable, xx, yy)])
+
+dat_dp3 %>% 
+  ggplot(aes(xx, yy, colour = variable, size = variable))+
+  geom_point(shape="\u2744")+
+  scale_color_manual(values = cols)+
+  scale_size_manual(values = c(5, 3, 3)*2)+
+  # facet_grid(. ~ ff)+
+  cowplot::theme_cowplot()+
+  theme(#axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    strip.placement = "outside")
+
+
+cols <- setNames(c("#1f78b4", "#ff7f00", "#33a02c"),
+                 c("v1", "v2", "v3"))
+
+
+ggplot()+
+  geom_tile(data = dat_dp[elev == 1500],
+            aes(xx, yy, fill = variable), 
+            width = 1, height = 1, alpha = 0.5)+
+  geom_point(data = dat_dp[elev == 1500], 
+             aes(xx, yy, colour = variable == "v1"),
+             shape = "\u2744", size = 8)+
+  scale_fill_manual(values = cols)+
+  scale_colour_manual(values = c("white", "white"))+
+  cowplot::theme_cowplot()+
+  theme(#axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    strip.placement = "outside")
+  
+
+
+
+## version 2 ---------------------------------------------------------------
+
+
+cols <- setNames(c("#a6cee3", "#fdbf6f", "#b2df8a"),
+                 c("v1", "v2", "v3"))
+
+# cols <- setNames(c("#1f78b4", "#ff7f00", "#33a02c"),
+#                  c("v1", "v2", "v3"))
+# 
+# cols <- setNames(c(grey(0.8), "#ff7f00", "#33a02c"),
+#                  c("v1", "v2", "v3"))
+
+
+
+gg <- dat_dp %>% 
+  ggplot()+
+  geom_tile(aes(xx, yy, fill = variable), 
+            width = 1, height = 1)+
+  geom_point(aes(xx, yy,),
+             shape = "\u2744", size = 5, colour = "white")+
+  scale_fill_manual(values = cols)+
+  facet_grid(. ~ elev, switch = "x")+
+  cowplot::theme_cowplot()+
+  theme(#axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    strip.placement = "outside",
+    legend.position = "none")+
+  xlab("Elevation [m]")+
+  scale_y_continuous(NULL, breaks = c(0,10,20,30), labels = c(0,10,20,30)*10)+
+  ggtitle("Impact of global warming on snow in the Alps")
+  
+  # legend
+  # geom_text(data = data.table(elev = 500, x = 0, y = 35, label = "Day(s) with snow on ground"), 
+  #           aes(x, y, label = label), hjust = 0)
+
+
+
+# annotate
+library(cowplot)
+
+
+gg_in_scd <-
+data.table(xx = 1:3, yy = 1, variable = paste0("v", 1:3)) %>% 
+  ggplot()+
+  geom_tile(aes(xx, yy, fill = variable), 
+            width = 1, height = 1)+
+  geom_point(aes(xx, yy),
+             shape = "\u2744", size = 5, colour = "white")+
+  scale_fill_manual(values = cols, guide = "none")+
+  theme_void()
+
+
+ggdraw(gg)+
+  draw_label("Day(s) with snow on ground", 0.05, 0.9, hjust = 0)+
+  draw_plot(gg_in_scd, 0.25, 0.9, width = 0.15, height = 0.05)
+
+
+
+
+## version 3 ---------------------------------------------------------------
+
+# try with no facets -> makes annotation easier!
+
+dat_dp %>% 
+  ggplot()+
+  geom_tile(aes(xx, yy, fill = variable), 
+            width = 1, height = 1)+
+  geom_point(aes(xx, yy,),
+             shape = "\u2744", size = 5, colour = "white")+
+  scale_fill_manual(values = cols, aesthetics = c("colour", "fill"))+
+  facet_grid(. ~ elev, switch = "x")+
+  cowplot::theme_cowplot()+
+  theme(#axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    strip.placement = "outside",
+    legend.position = "none")+
+  xlab("Elevation [m]")+
+  scale_y_continuous(NULL, breaks = c(0,10,20,30), labels = c(0,10,20,30)*10)+
+  ggtitle("Impact of global warming on snow in the Alps")+
+  
+  geom_curve(data = data.table(elev = 2000, variable = "v3", 
+                               x = 9, xend = 7, y = 25, yend = 17),
+             aes(x, y, xend = xend, yend = yend, colour = variable),
+             curvature = -0.3,
+             arrow = arrow(type = "closed", length = unit(0.25, "cm")))
+
+
+
+# future summary with data ------------------------------------------------
+
+library(data.table)
+library(forcats)
+library(ggplot2)
+load("data/future-summary-elev-500m.rda")
+
+setnames(dat_bc, "alt_f", "elev_f")
+dat_bc[, elev := tstrsplit(elev_f, ",") %>% sapply(readr::parse_number) %>% rowMeans]
+dat_ds[, elev := tstrsplit(elev_f, ",") %>% sapply(readr::parse_number) %>% rowMeans]
+
+dat_ens_mean <- dat_ds[elev > 200 & elev < 3600,
+                       .(scd = mean(scd)),
+                       .(elev_f, elev, experiment, period, fp)]
+
+
+# dat_ens_mean <- dat_bc[elev > 200 & elev < 3600,
+#                        .(scd = mean(snc)*365),
+#                        .(elev_f, elev, experiment, period, fp)]
+
+dat_ens_mean[, period_f := fct_recode(period,
+                                      "2001\n-\n2020" = "2001-2020",
+                                      "2041\n-\n2070" = "2041-2070",
+                                      "2071\n-\n2100" = "2071-2100")]
+
+dat_ens_mean[period != "2041-2070"] %>% 
+  dcast(elev ~ experiment + fp, value.var = "scd") -> dat_lollipop
+
+dat_lollipop[, elev_fct := fct_inorder(paste0(elev, " m"))]
+
+dat_lollipop[, .(elev,
+                 v1 = rcp85_future, 
+                 v2 = rcp26_future - rcp85_future,
+                 v3 = rcp26_past - rcp26_future)] %>% 
+  melt(id.vars = "elev",
+       measure.vars = paste0("v", 1:3)) %>% 
+  .[,
+    .(i_dot_grp = 1:round(value)),
+    .(elev, variable)] -> dat_dp
+
+
+dat_dp[, i_dot := 1:.N - 1, elev]
+dat_dp[, xx := i_dot %% 10]
+dat_dp[, yy := i_dot %/% 10]
+
+# cols <- setNames(c("#377eb8", "#e41a1c", "#ff7f00", grey(0.7)),
+#                  c("ss", "v2", "v3", "v1"))
+
+# cols <- setNames(c("#a6cee3", "#fdbf6f", "#b2df8a"),
+#                  c("v1", "v2", "v3"))
+
+cols <- setNames(c("#1f78b4", "#ff7f00", "#33a02c"),
+                 c("v1", "v2", "v3"))
+
+cols <- setNames(c(grey(0.8), "#ff7f00", "#33a02c"),
+                 c("v1", "v2", "v3"))
+
+
+
+## plot --------------------------------------------------------------------
+
+
+
+# try with no facets -> makes annotation easier!
+
+x_rat <- 80
+elev_plot <- c(500, 1500, 2500, 3500)
+
+dat_dp[, xx_plot := elev + x_rat*xx - 10*x_rat/2]
+
+dat_dp[elev %in% elev_plot] %>% 
+  ggplot(aes(xx_plot, yy+0.5))+
+  geom_hline(yintercept = 0:12*3, colour = grey(0.8))+ # 1 month
+  
+  geom_point(shape = "\u2744", size = 5, colour = "#9ecae1")+
+  geom_point(data = dat_dp[elev %in% elev_plot & variable == "v3"] ,
+             shape = 4, size = 3, colour = "black")+
+  geom_point(data = dat_dp[elev %in% elev_plot & variable == "v2"] ,
+             shape = 1, size = 4, colour = "#e6550d")+
+  geom_text(data = dat_dp[elev %in% elev_plot & variable == "v2"] ,
+            label = "?", fontface = "plain", size = 4, colour = "#e6550d")+
+  # scale_fill_manual(values = cols, aesthetics = c("colour", "fill"))+
+  cowplot::theme_cowplot()+
+  scale_x_continuous(NULL, limits = c(0, 4000), expand = c(0,0),
+                     breaks = elev_plot, labels = paste0(elev_plot, " m"))+
+  # scale_y_continuous(NULL, breaks = c(0,10,20,30), labels = c(0,10,20,30)*10)+
+  scale_y_continuous(NULL, limits = c(0, 36.1), expand = c(0,0),
+                     breaks = c(0,9,18,27,36), labels = c(0,9,18,27,36)*10)+
+  ggtitle("Days with snow on ground in the Alps",
+          "Impact of global warming and climate action for end of century (2071-2100) snow cover")+
+  
+  #legend
+  annotate("rect", xmin = 50, xmax = 3000, ymin = 26.9, ymax = 36.1, 
+           colour = "white", fill = "white")+
+  annotate("point", 100, 34.5, shape = "\u2744", size = 5, colour = "#9ecae1")+
+  annotate("text", 150, 34.5, hjust = 0, 
+           label = "Day with snow on ground, recent (2001-2020)", colour = "#9ecae1")+
+  
+  annotate("point", 100, 31.5, shape = 4, size = 3, colour = "black")+
+  annotate("text", 150, 31.5, hjust = 0, vjust = 0.5,
+           label = "Future loss if global warming is 1.5-2°C (commited loss)", colour = "black")+
+  
+  annotate("point", 100, 28.5, shape = 1, size = 4, colour = "#e6550d")+
+  annotate("text", 100, 28.5, label = "?", fontface = "plain", size = 4, colour = "#e6550d")+
+  annotate("text", 150, 28.5, hjust = 0, vjust = 0.5,
+           label = "Extra loss if global warming is 4-5°C (can be saved with climate action)",
+           colour = "#e6550d")+
+  
+  # grid stuff
+  annotate("segment", x = 1000, xend = 1000, y = 18, yend = 15, colour = grey(0.8),
+           arrow = arrow(ends = "both", type = "closed", length = unit(0.1, "in")))+
+  annotate("text", x = 1000, y = 16.5, hjust = -0.1, label = "(~1 month)", colour = grey(0.8))+
+  annotate("text", x = 1000, y = 16.5, hjust = 1.2, label = "30 days", colour = grey(0.8))
+  
+
+
+
 # EOF ---------------------------------------------------------------------
 
 

@@ -1,5 +1,5 @@
 ---
-title: "CliRSnow"
+title: "Past trends | CliRSnow"
 output: 
   flexdashboard::flex_dashboard:
     self_contained: false
@@ -10,9 +10,9 @@ output:
     social: menu
     source: embed
     logo: other/logo_72x48.png
+    favicon: other/logo_72x48.png
     navbar:
-      - { title: "Back to main dashboard", href: "./", align: right }
-      - { title: "Back to CliRSnow homepage", href: "/", align: right }
+      - { icon: "fa-share", title: "Main Dash", href: "./", align: right }
 ---
 
 ```{r setup, include=FALSE}

@@ -1,5 +1,5 @@
 ---
-title: "CliRSnow"
+title: "Results dashboard | CliRSnow"
 output: 
   flexdashboard::flex_dashboard:
     self_contained: false
@@ -10,8 +10,9 @@ output:
     social: menu
     source: embed
     logo: other/logo_72x48.png
+    favicon: other/logo_72x48.png
     navbar:
-      - { title: "Back to CliRSnow homepage", href: "/", align: right }
+      - { icon: "fa-share", title: "CliRSnow", href: "/", align: right }
 ---
 
 ```{r setup, include=FALSE}
@@ -23,7 +24,22 @@ library(leaflet)
 htmltools::tagList(fontawesome::fa_html_dependency())
 ```
 
-
+```{r meta, include=TRUE}
+library(metathis)
+meta() %>%
+  meta_description(
+    "Snow cover in the European Alps: Interactive dashboard with the main results from CliRSnow, an EU-funded research project."
+  ) %>% 
+  meta_viewport() %>% 
+  meta_social(
+    title = "Results dashboard | CliRSnow",
+    url = "https://clirsnow.netlify.app/dash-results/",
+    image = "https://clirsnow.netlify.app/dash-results/other/preview-main-dash.png",
+    og_type = "website",
+    og_author = c("Michael Matiu", "Peter J. Zellner"),
+    twitter_card_type = "summary"
+  )
+```
 
 ## Row 1
 
@@ -105,6 +121,6 @@ Long-term trends in snow depth and related parameters from in-situ station obser
 
 Future projections of snow cover fraction under different greenhouse gas concentration scenarios. 
 
-<a href="./dash-future.html" class="btn btn-primary" role="button">Snow cover duration 2000-2100</a>
+<a href="./dash-future.html" class="btn btn-primary" role="button">Snow cover duration 2001-2100</a>
 
 
