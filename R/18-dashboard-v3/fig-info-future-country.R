@@ -133,6 +133,7 @@ gg <- dat_lollipop[elev %in% c(500, 1500, 2500, 3500)] %>%
         axis.line.y = element_line(colour = cols["anno_month"]),
         panel.grid.minor = element_blank(),
         panel.grid.major.y = element_blank(),
+        plot.background = element_rect(colour = "white", fill = "white"),
         strip.placement = "outside",
         strip.text.y.left = element_text(angle = 0))+
   
@@ -141,7 +142,20 @@ gg <- dat_lollipop[elev %in% c(500, 1500, 2500, 3500)] %>%
   ggtitle("Snow cover duration in the Alps",
           "Impact of global warming and climate action on end of century (2071-2100) snow cover")
 
-ggsave(gg, filename = "fig/info-future-country.png", width = 9, height = 6)
+ggsave(gg, filename = "fig/country/info-future-country_EN.png", width = 9, height = 6)
+
+
+
+## german ------------------------------------------------------------------
+
+## italian ------------------------------------------------------------------
+
+## french ------------------------------------------------------------------
+
+## spanish? ------------------------------------------------------------------
+
+
+
 
 # table -------------------------------------------------------------------
 
@@ -187,7 +201,7 @@ read_docx() %>%
   body_add_flextable(ft_rcp26) %>% 
   body_add_par("") %>% body_add_par("") %>% 
   body_add_flextable(ft_rcp85) %>% 
-  print(target = "fig/info-future-country.docx")
+  print(target = "fig/country/table-info-future-country.docx")
   
 
 
