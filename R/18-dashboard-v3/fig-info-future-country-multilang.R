@@ -14,15 +14,15 @@ library(forcats)
 
 
 dat_country_names <- tibble::tribble(
-  ~EN, ~DE, ~IT, ~FR,
-  "Austria", "Österreich", "Austria", "Autriche",
-  "Bosnia and Herzegovina", "Bosnien und Herzegowina", "Bosnia ed Erzegovina", "Bosnie-Herzégovine",
-  "Croatia", "Kroatien", "Croazia", "Croatie",
-  "France", "Frankreich", "Francia", "France",
-  "Germany", "Deutschland", "Germania", "Allemagne",
-  "Italy", "Italien", "Italia", "Italie",
-  "Slovenia", "Slowenien", "Slovenia", "Slovénie",
-  "Switzerland", "Schweiz", "Svizzera", "Suisse"
+  ~EN, ~DE, ~IT, ~FR, ~ES,
+  "Austria", "Österreich", "Austria", "Autriche", "Austria",
+  "Bosnia and Herzegovina", "Bosnien und Herzegowina", "Bosnia ed Erzegovina", "Bosnie-Herzégovine", "Bosnia y Herzegovina",
+  "Croatia", "Kroatien", "Croazia", "Croatie", "Croacia", 
+  "France", "Frankreich", "Francia", "France", "Francia",
+  "Germany", "Deutschland", "Germania", "Allemagne", "Alemania",
+  "Italy", "Italien", "Italia", "Italie", "Italia",
+  "Slovenia", "Slowenien", "Slovenia", "Slovénie", "Eslovenia",
+  "Switzerland", "Schweiz", "Svizzera", "Suisse", "Suiza",
 ) %>% data.table()
 
 dat_country_names[, country_fct := EN]
@@ -166,6 +166,7 @@ f_plot <- function(lang = "EN",
             lbl_subtitle)
   
   ggsave(gg, filename = paste0("fig/country/info-future-country_", lang, ".png"), width = 9, height = 6)
+  ggsave(gg, filename = paste0("fig/country/info-future-country_", lang, ".pdf"), width = 9, height = 6)
   
   gg
 }
@@ -177,10 +178,10 @@ f_plot <- function(lang = "EN",
 
 dat_anno_repel <- cbind(dat_anno,
                         yy = 100 + c(1500 + 3.5*dy, 1500, 1500 - 3.5*dy),
-                        xx = c(167, 120, 120) - 10,
+                        xx = c(169, 120, 120) - 10,
                         colour = c("rcp26", "rcp85", "loss"),
                         label = c("... with 1.5-2°C warming",
-                                  "reduction in future SCD with 4-5°C warming",
+                                  "Reduction in future SCD with 4-5°C warming",
                                   "SCD saved with climate action"),
                         hjust = c(0, 0, 0))
 
@@ -228,7 +229,7 @@ f_plot(lang = "IT",
        lbl_recent = "Recente (2001-2020)",
        lbl_xlab = "Durata del manto nevoso [giorni]",
        lbl_title = "Durata del manto nevoso nelle Alpi",
-       lbl_subtitle = "Impatto del riscaldamento globale e delle misure per l’adattamento \ne la mitigazione sulla copertura nevosa alla fine del secolo (2071-2100)")
+       lbl_subtitle = "Impatto del riscaldamento globale e delle misure per l'adattamento \ne la mitigazione sulla copertura nevosa alla fine del secolo (2071-2100)")
 
 
 
@@ -237,10 +238,10 @@ f_plot(lang = "IT",
 
 dat_anno_repel <- cbind(dat_anno,
                         yy = 100 + c(1500 + 3.5*dy, 1500, 1500 - 3.5*dy),
-                        xx = c(215, 120, 120) - 10,
+                        xx = c(211, 120, 120) - 10,
                         colour = c("rcp26", "rcp85", "loss"),
                         label = c("... avec ... 1.5-2°C",
-                                  "Réduction future avec réchauffement climatique de 1.5-2°C",
+                                  "Réduction future avec réchauffement climatique de 4-5°C",
                                   "Peut être sauvé grâce à actions d'atténuation"),
                         hjust = c(0, 0, 0))
 
@@ -254,7 +255,26 @@ f_plot(lang = "FR",
        lbl_subtitle = "Effets du réchauffement climatique et de l'atténuation du changement\nclimatique sur le manteau neigeux à la fin du siècle (2071-2100)")
 
 
-## spanish? ------------------------------------------------------------------
+## spanish ------------------------------------------------------------------
+
+
+dat_anno_repel <- cbind(dat_anno,
+                        yy = 100 + c(1500 + 3.5*dy, 1500, 1500 - 3.5*dy),
+                        xx = c(202, 120, 120) - 10,
+                        colour = c("rcp26", "rcp85", "loss"),
+                        label = c("... con ... 1.5-2°C",
+                                  "Futura reducción con calentamiento global de 4-5°C",
+                                  "Puede salvarse con la acción climática"),
+                        hjust = c(0, 0, 0))
+
+
+f_plot(lang = "ES",
+       lbl_month = "mes",
+       lbl_days = "días",
+       lbl_recent = "Reciente (2001-2020)",
+       lbl_xlab = "Duración de la capa de nieve [días]",
+       lbl_title = "Duración de la capa de nieve en los Alpes",
+       lbl_subtitle = "Impacto del calentamiento global y de la acción climática \nen el capa de nieve de fin de siglo (2071-2100)")
 
 
 
