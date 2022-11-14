@@ -11,12 +11,12 @@ library(mitmatmisc)
 # from daily - monthly ----------------------------------------------------
 
 
-dat1 <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/05_MONTHLY/rds/1787hn_1879hs-1960/data_long_HN_HS.rds")
-dat2 <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/05_MONTHLY/rds/1961-2020/data_long_HN_HS.rds")
+dat1 <- readRDS("~/alps-snow/ALPINE_WIDE_SNOW/05_MONTHLY/rds/1787hn_1879hs-1960/data_long_HN_HS.rds")
+dat2 <- readRDS("~/alps-snow/ALPINE_WIDE_SNOW/05_MONTHLY/rds/1961-2020/data_long_HN_HS.rds")
 dat_all <- rbind(dat1, dat2)
 
-meta1 <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/05_MONTHLY/rds/1787hn_1879hs-1960/meta_long_HN_HS.rds")
-meta2 <- readRDS("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/05_MONTHLY/rds/1961-2020/meta_long_HN_HS.rds")
+meta1 <- readRDS("~/alps-snow/ALPINE_WIDE_SNOW/05_MONTHLY/rds/1787hn_1879hs-1960/meta_long_HN_HS.rds")
+meta2 <- readRDS("~/alps-snow/ALPINE_WIDE_SNOW/05_MONTHLY/rds/1961-2020/meta_long_HN_HS.rds")
 meta_all <- unique(rbind(meta1, meta2))
 
 add_hydro_year(dat_all)
@@ -93,8 +93,8 @@ add_gb_meta <- gb_meta[stn_name_safe %in% add_gb_OctSep$Name]
 
 # add HZB -----------------------------------------------------------------
 
-hzb_meta <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/06_SEASONAL/from-non-daily-data/hzb/meta.csv")
-hzb_data <- fread("/mnt/CEPH_PROJECTS/ALPINE_WIDE_SNOW/06_SEASONAL/from-non-daily-data/hzb/data.csv")
+hzb_meta <- fread("~/alps-snow/ALPINE_WIDE_SNOW/06_SEASONAL/from-non-daily-data/hzb/meta.csv")
+hzb_data <- fread("~/alps-snow/ALPINE_WIDE_SNOW/06_SEASONAL/from-non-daily-data/hzb/data.csv")
 
 
 hzb_merge <- merge(
