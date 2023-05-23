@@ -1,54 +1,28 @@
-# Fill daily meteo gaps (fdmg)
-# initial source code by Alice Crespi, modified by Michael Matiu
-# only tested for HS (snow depth)
+# Fill monthly meteo gaps (fmmg)
 
+# modification of the daily version:  06/gapfill/fdmg_v09.R
+# with additional work from Michele Bozzoli and Alice Crespi
+# only tested for HN (depth of snowfall)
 
-# changes made to initial source code
+# changes made
 # --------------------------- #
 
-
-
 # ------- v01 --------------- #  
-# - renamed input parameters
-# - removed plot
-# ------- v02 --------------- #  
-# - rewrote distance calculation using geosphere package 
-#    -> slightly different weights because radius more digits
-#    -> minimal different results
-# ------- v03 --------------- #  
-# - rewrote stns_to_fill parameter (which stations)
-# - added separated dates vectors
-# - added verbose parameter (0: nothing, 1:progress, 2:much detail)
-# - improved finding the window data (~1/4 time saved)
-# ------- v04b -------------- #  
-# - added pre-subset stations within horiz and vertical limits
-# - added new param max_dist_vert_m
-# - rewrote parameter calculation (using matrix)
-# ------- v05 --------------- #  
-# - added save_ref_parameters option
-# - splitted input into data (time series) and dates, with two options to supply dates
-# - remove parameter "variable" and instead put "ratio_var" and "wetdays"
-# ------- v06 --------------- #  
-# - return list(series, fillcodes) instead of global assignment / attribute
-# - fixed feb 29 issue, so also years without feb 29 are considered for window
-# - added n_ref_min parameter (n_ref changed to n_ref_max)
-# - added some input checks
-# - added sort_by and weight_by parameters (and weight_by_extra storing tau halving distances)
-# ------- v07 --------------- #  
-# - added roxygen documentation
-# ------- v08 --------------- #  
-# - added rows_to_fill parameter
-# ------- v09 --------------- #  
-# - calculate ratio if mean_ref==0 only (and not if also mean_gap==0)
+# - modified daily to monthly (min_years_common instead of moving window)
+# - multivariate weights possible (product of single-element weights)
+
+
+
+
 
 # requirements
 # - df_meta[, c("name", "long", "lat", "elev")]
 # - sort_by = c("corr", "dist_v", "dist_h")
 
-# packages needed
-library(lubridate)
-library(data.table)
-library(geosphere)
+# packages needed: lubridate, data.table, geosphere
+# library(lubridate)
+# library(data.table)
+# library(geosphere)
 
 
 
@@ -57,7 +31,11 @@ library(geosphere)
 # --------------------------------------------------------------------------- #
 # --------------------------------------------------------------------------- #
 
-#' Gapfilling of daily meteorological time series based on spatial neighbours
+#' Gapfilling of monthly meteorological time series based on spatial neighbours
+#' 
+#' Tries to fill gaps using neighbouring stations.Tests whether sufficient data 
+#' from neighbours exists (see settings), does it month-by-month and gap-by-gap, 
+#' using all available years.
 #'
 #' @param df_meta data.frame containing meta information on stations. 
 #'                Should have columns named c("name", "long", "lat", "elev")
@@ -65,19 +43,19 @@ library(geosphere)
 #'                   Each column is a station, ncol(mat_series) should be equal nrow(df_meta).
 #'                   Order of stations in the columns of mat_series should be identical 
 #'                   to the order rows in df_meta,
-#' @param mat_ymd matrix of dimension nrow(mat_series) by 3. 
-#'                Column should contain the year, month, and day (in that order) of the series.
+#' @param mat_ym matrix of dimension nrow(mat_series) by 2. 
+#'                Column should contain the year and month (in that order) of the series.
 #'                Instead of this, vec_dates could alternatively be supplied.
 #' @param vec_dates vector of class Date, associated to the series. 
 #'                  Length should be equal to nrow(mat_series).
-#'                  Instead of this, mat_ymd could alternatively be supplied.
+#'                  Instead of this, mat_ym could alternatively be supplied.
 #' @param stns_to_fill numeric, stations which should be filled, if NULL, all stations are selected
 #' @param rows_to_fill numeric, rows which should be filled, if NULL, all missing values are filled
 #' @param min_corr numeric, threshold of minimum correlation for stations to be considered
 #' @param elev_threshold numeric or NULL, elevation threshold, if not NULL, then if the gap series
 #'                       has elevation below, then only neighbouring stations also below are considered.
-#' @param max_dist_horiz_km numeric, maximum horizontal distance in km for stations to be considered.
-#' @param max_dist_vert_m NULL or numeric, if not NULL, maximum vertical distance in m for stations to be considered. 
+#' @param max_dist_horiz_km numeric, maximum horizontal distance in km for stations to be considered (also saves computation time)
+#' @param max_dist_vert_m NULL or numeric, if not NULL, maximum vertical distance in m for stations to be considered (also saves computation time)
 #' @param frac_ref_window numeric between 0 and 1, fraction of data which gap and neighbouring series 
 #'                        should have in common
 #' @param n_ref_max numeric, maximum number of reference stations
@@ -85,7 +63,7 @@ library(geosphere)
 #' @param digits_round numeric, number of digits to round the gapfilled value
 #' @param ratio_var logical, if TRUE scaling factors are multiplicative, if FALSE additive
 #' @param sort_by character, one of c("dist_h", "dist_v, "corr"), sorting criteria for reference stations
-#' @param weight_by character, one of c("dist_h", "dist_v, "corr"), weighting criteria for reference stations
+#' @param weight_by character, one or more of c("dist_h", "dist_v, "corr"), weighting criteria for reference stations
 #' @param weight_by_extra list of length 3, containing the halving distances for the weighting,
 #'                        list elements should have names tau_h, tau_v, tau_corr.
 #'                        e.g. list(tau_h = 50, tau_v = 300, tau_corr = 0.3)
@@ -110,31 +88,27 @@ library(geosphere)
 #' @export
 #'
 #' @examples
-fill_daily_meteo_gaps <- function(df_meta, 
-                                  mat_series, 
-                                  mat_ymd, 
-                                  vec_dates, 
-                                  stns_to_fill = NULL, 
-                                  rows_to_fill = NULL,
-                                  min_corr = 0.7, 
-                                  elev_threshold = NULL, 
-                                  max_dist_horiz_km = 200,
-                                  max_dist_vert_m = 500,
-                                  frac_ref_window = 0.8, 
-                                  n_ref_max = 5, 
-                                  n_ref_min = 1,
-                                  digits_round = 0,
-                                  ratio_var = T,
-                                  sort_by = "corr", 
-                                  weight_by = "dist_v",
-                                  weight_by_extra = list(tau_h = 50, tau_v = 250, tau_corr = 0.3),
-                                  min_days_around_gap = 150, 
-                                  window_hw_years = 10,
-                                  window_hw_days_min = 15, 
-                                  window_hw_days_max = 46,
-                                  verbose = 1, # other
-                                  save_ref_parameter = NULL,
-                                  wetdays = F){
+fill_monthly_meteo_gaps <- function(df_meta, 
+                                    mat_series, 
+                                    mat_ymd, 
+                                    vec_dates, 
+                                    stns_to_fill = NULL, 
+                                    rows_to_fill = NULL,
+                                    min_corr = 0.7,
+                                    elev_threshold = NULL, 
+                                    max_dist_horiz_km = 200,
+                                    max_dist_vert_m = 500,
+                                    min_years_common = 10,
+                                    n_ref_max = 5, 
+                                    n_ref_min = 1,
+                                    digits_round = 0,
+                                    ratio_var = T,
+                                    sort_by = "corr",
+                                    weight_by = c("dist_v", "dist_h"),
+                                    weight_by_extra = list(tau_h = 50, tau_v = 250, tau_corr = 0.3),
+                                    verbose = 1, # other
+                                    save_ref_parameter = NULL
+){
   
 
 # setup -------------------------------------------------------------------
@@ -144,26 +118,26 @@ fill_daily_meteo_gaps <- function(df_meta,
   
   # check input
   if(n_stn != ncol(mat_series)) stop("Number of stations in df_meta (rows) and mat_series (cols) not equal")
-  if(!missing(mat_ymd) && nrow(mat_ymd) != nrow(mat_series)) stop("Date mismatch: Number of rows in mat_series and mat_ymd unequal")
+  if(!missing(mat_ym) && nrow(mat_ym) != nrow(mat_series)) stop("Date mismatch: Number of rows in mat_series and mat_ymd unequal")
   if(!missing(vec_dates) && length(vec_dates) != nrow(mat_series)) stop("Date mismatch: Length of vec_dates not equal to number of rows in mat_series")
   
   # distance matrix
-  mat_dist_km <- geosphere::distm(df_meta[, c("long", "lat")], fun = geosphere::distCosine) / 1000
+  mat_dist_h_km <- geosphere::distm(df_meta[, c("long", "lat")], fun = geosphere::distCosine) / 1000
+  mat_dist_v_m <- as.matrix(dist(df_meta[, c("elev")]))
   # matrix of station distance weights
-  mat_dist_weight <- exp( -(mat_dist_km^2) / (weight_by_extra$tau_h^2/log(2)) ) 
+  mat_weight_dist_h <- exp( -(mat_dist_h_km^2) / (weight_by_extra$tau_h^2/log(2)) ) 
+  mat_weight_dist_v <- exp( -(mat_dist_v_m^2) / (weight_by_extra$tau_v^2/log(2)) ) 
   
   
   # separate date and series
-  if(missing(mat_ymd) & !missing(vec_dates)){
-    years <- year(vec_dates)
-    months <- month(vec_dates)
-    days <- day(vec_dates)
+  if(missing(mat_ym) & !missing(vec_dates)){
+    years <- lubridate::year(vec_dates)
+    months <- lubridate::month(vec_dates)
     dates <- vec_dates
-  } else if(!missing(mat_ymd)){
-    years <- mat_ymd[, 1]
-    months <- mat_ymd[, 2]
-    days <- mat_ymd[, 3]
-    dates <- make_date(years, months, days)
+  } else if(!missing(mat_ym)){
+    years <- mat_ym[, 1]
+    months <- mat_ym[, 2]
+    dates <- lubridate::make_date(years, months)
   } else stop("One of mat_ymd or vec_dates has to be supplied.")
   
   years_min <- min(years)
@@ -205,56 +179,26 @@ fill_daily_meteo_gaps <- function(df_meta,
       if(verbose > 0 & n_filled %% 100 == 0) cat("  filled", n_filled, "of", length(rows_to_loop), "\n")
       
       i_date <- dates[i_row]
+      i_year <- years[i_row]
+      i_month <- months[i_row]
       
 
 # get gap series window data ----------------------------------------------
 
-      
-      
-      # get available years in window around i_date
-      current_window_years <- seq(years[i_row] - window_hw_years, years[i_row] + window_hw_years)
-      current_window_years <- current_window_years[current_window_years >= years_min & current_window_years <= years_max]
-      
-      # get all dates/indices in window (days * years)
-      for(current_window_hw_days in seq(window_hw_days_min, window_hw_days_max, by = 5)){
+      values_gap_series <- mat_series[months == i_month, i_stn]
         
-        l_window <- lapply(current_window_years, function(i_year){
-          
-          if(month(i_date) == 2 & day(i_date) == 29){
-            i_date_seq <- make_date(i_year, month(i_date), 28) 
-          } else {
-            i_date_seq <- make_date(i_year, month(i_date), day(i_date))
-          }
-          seq(i_date_seq - current_window_hw_days, 
-              i_date_seq + current_window_hw_days, 
-              by = "day")
-          
-        })
-        
-        current_window_dates <- do.call("c", l_window)
-        
-        current_window_ind <- match(current_window_dates, dates)
-        current_window_ind <- current_window_ind[!is.na(current_window_ind)]
-        values_gap_series <- mat_series[current_window_ind, i_stn]
-        
-        # break out of loop, if enough values
-        if(sum(!is.na(values_gap_series)) > min_days_around_gap) break
-        
-      }
-      
       # skip if not enogh values in gap series
-      if(sum(!is.na(values_gap_series)) < min_days_around_gap) next
+      if(sum(!is.na(values_gap_series)) < min_years_common) next
       
 
 # identify candidates for reference series --------------------------------
-
 
             
       # subset to nearby stations within horizontal and vertical limits
       # preselect candidate reference series
       
       # horizontal limits
-      ref_stns_possible <- which(mat_dist_km[i_stn, ] < max_dist_horiz_km)
+      ref_stns_possible <- which(mat_dist_h_km[i_stn, ] < max_dist_horiz_km)
       # not gap series
       ref_stns_possible <- ref_stns_possible[ref_stns_possible != i_stn]
       
@@ -269,7 +213,7 @@ fill_daily_meteo_gaps <- function(df_meta,
       # vertical limits
       if(!is.null(max_dist_vert_m)){
         ref_stns_possible <- intersect(ref_stns_possible, 
-                                       which(abs(df_meta$elev - df_meta$elev[i_stn]) < max_dist_vert_m))
+                                       which(mat_dist_v_m[i_stn, ] < max_dist_vert_m))
       }
       
       # not NA at gap date
@@ -287,17 +231,20 @@ fill_daily_meteo_gaps <- function(df_meta,
       for(i_fill in seq_along(ref_stns_possible)){
         
         i_ref <- ref_stns_possible[i_fill]
-        values_ref <- mat_series[current_window_ind, i_ref]
+        values_ref <- mat_series[months == i_month, i_ref]
         
         # lgl common data
         lgl_common <- !is.na(values_gap_series) & !is.na(values_ref)
         
         # do nothing if not enough data in common
-        if(sum(lgl_common) < min_days_around_gap*frac_ref_window) next
+        if(sum(lgl_common) < min_years_common) next
         
         # get common data
         values_gap_series_common <- values_gap_series[lgl_common]
         values_ref_common <- values_ref[lgl_common]
+        
+        # plot (in interactive testing of mat_fill_param loop)
+        # plot(values_gap_series_common, values_ref_common, main = df_meta$name[i_ref])
         
         # correlations
         # make correlation just above threshold, if both series completey 0 -> so 0 periods get filled too (e.g. summer snow)
@@ -311,14 +258,6 @@ fill_daily_meteo_gaps <- function(df_meta,
           correlation <- cor(values_gap_series_common, values_ref_common, method="pearson")
         }
         
-        # number of wet days
-        if(wetdays){
-          n_wetdays <- sum(values_gap_series_common > wetdays & values_ref_common > wetdays)
-        } else {
-          n_wetdays <- NA
-        }
-        
-        
         mean_gap <- mean(values_gap_series_common)
         mean_ref <- mean(values_ref_common)
         
@@ -327,29 +266,28 @@ fill_daily_meteo_gaps <- function(df_meta,
           # scaling factor 0 if both series completely 0
           conv_fact <- 0 
         } else if(ratio_var){
-		  if(mean_ref == 0) conv_fact <- 0 else conv_fact <- mean_gap / mean_ref
+          if(mean_ref == 0) conv_fact <- 0 else conv_fact <- mean_gap / mean_ref
         } else {
           conv_fact <- mean_gap - mean_ref
         }
-        
         
         mat_fill_param[i_fill, ] <- c(i_stn,
                                       df_meta$elev[i_stn],
                                       i_ref,
                                       df_meta$elev[i_ref],
-                                      mat_dist_km[i_stn, i_ref],
-                                      mat_dist_weight[i_stn, i_ref],
-                                      df_meta$elev[i_ref] - df_meta$elev[i_stn],
+                                      mat_dist_h_km[i_stn, i_ref],
+                                      mat_dist_v_m[i_stn, i_ref],
                                       correlation,
+                                      mat_weight_dist_h[i_stn, i_ref],
+                                      mat_weight_dist_v[i_stn, i_ref],
                                       sum(lgl_common),
-                                      conv_fact,
-                                      n_wetdays)       
+                                      conv_fact)       
         
       }
       
       colnames(mat_fill_param) <- c("ind_gap", "elev_gap", "ind_ref", "elev_ref",
-                                    "dist_h_km", "dist_h_weight", "dist_v_m", "corr", 
-                                    "n_common", "conv_fact", "n_wetdays")
+                                    "dist_h_km", "dist_v_m", "corr", "weight_h", "weight_v",
+                                    "n_common", "conv_fact")
       
       rownames(mat_fill_param) <- df_meta$name[ref_stns_possible]
 
@@ -394,18 +332,12 @@ fill_daily_meteo_gaps <- function(df_meta,
       wm_values <- mat_series[i_row, i_selected_ref]
       wm_conv_fact <- mat_selected_ref_ordered[1:n_ref_actual, "conv_fact"]
       
-      # weight by
-      if(weight_by == "corr"){
-        xx <- mat_selected_ref_ordered[1:n_ref_actual, "corr"]
-        wm_weights <- exp( -(1 - xx)^2 / (weight_by_extra$tau_corr^2/log(2)) ) 
-      } else if(weight_by == "dist_h"){
-        wm_weights <- mat_selected_ref_ordered[1:n_ref_actual, "dist_h_weight"]
-      } else if(weight_by == "dist_v") {
-        xx <- mat_selected_ref_ordered[1:n_ref_actual, "dist_v_m"]
-        wm_weights <- exp( -(xx^2) / (weight_by_extra$tau_v^2/log(2)) ) 
-      } else stop('weight_by must be in c("corr", "dist_h", "dist_v")')
-      
-
+      # weight by matrix
+      mat_i_weight <- cbind(dist_h = mat_selected_ref_ordered[1:n_ref_actual, "weight_h"],
+                            dist_v = mat_selected_ref_ordered[1:n_ref_actual, "weight_v"],
+                            corr = exp( -(1 - mat_selected_ref_ordered[1:n_ref_actual, "corr"])^2 / 
+                                          (weight_by_extra$tau_corr^2/log(2)) )) 
+      wm_weights <- apply(mat_i_weight[, weight_by], 1, prod)
       
       # fill value
       if(ratio_var){

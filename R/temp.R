@@ -1110,6 +1110,54 @@ dat_comp[mm != SCD_NDJFMAM]
 
 
 
+# check monthly gapfilling ------------------------------------------------------
+
+dat_meta_monthly <- unique(rbind(readRDS("~/projects/ALPINE_WIDE_SNOW/05_MONTHLY/rds/1961-2020/meta_long_HN_HS.rds"),
+                                 readRDS("~/projects/ALPINE_WIDE_SNOW/05_MONTHLY/rds/1787hn_1879hs-1960/meta_long_HN_HS.rds")))
+
+dat_monthly <- rbind(readRDS("~/projects/ALPINE_WIDE_SNOW/05_MONTHLY/rds/1787hn_1879hs-1960/data_long_HN_HS.rds"),
+                     readRDS("~/projects/ALPINE_WIDE_SNOW/05_MONTHLY/rds/1961-2020/data_long_HN_HS.rds"))
+dat_monthly[, HS := NULL]
+
+dat1 <- dat_monthly[Name %in% dat_meta_monthly[Provider %in% c("IT_TN", "IT_BZ"), Name] &
+                      year >= 1970]
+
+# prep data for code
+dat1_wide <- dcast(dat1, year + month ~ Name, value.var = "HN")
+dat1_wide
+
+mat_ym <- as.matrix(dat1_wide[, .(year, month)])
+mat_series <- as.matrix(dat1_wide[, -c(1,2)])
+
+df_meta <- dat_meta_monthly[Provider %in% c("IT_TN", "IT_BZ"), ]
+setorder(df_meta, Name)
+setnames(df_meta, c("provider", "name", "long", "lat", "elev"))
+
+
+# function parameters 
+# ----------- # 
+stns_to_fill = NULL 
+rows_to_fill = NULL
+min_corr = 0.7
+elev_threshold = NULL 
+max_dist_horiz_km = 200
+max_dist_vert_m = 500
+# frac_ref_window = 0.8, 
+min_years_common = 10
+n_ref_max = 5 
+n_ref_min = 1
+digits_round = 0
+ratio_var = T
+sort_by = "corr"
+weight_by = c("dist_v", "dist_h")
+weight_by_extra = list(tau_h = 50, tau_v = 250, tau_corr = 0.3)
+# min_days_around_gap = 150, 
+# window_hw_years = 10,
+# window_hw_days_min = 15, 
+# window_hw_days_max = 46,
+verbose = 1 # other
+# wetdays = F,
+save_ref_parameter = NULL
 
 # EOF ---------------------------------------------------------------------
 
