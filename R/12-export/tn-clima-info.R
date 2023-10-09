@@ -63,4 +63,42 @@ ft <- dat_table2 %>%
 save_as_docx(ft, path = "fig/country/tn-clima-italy.docx")
 
 
+# fig 2 -------------------------------------------------------------------
 
+
+
+gg <-
+dat_ens_mean[country == "Italy" & elev < 3000 & elev > 500] %>% 
+  ggplot(aes(period_f, scd, colour = experiment))+
+  geom_path(aes(group = experiment))+
+  geom_point()+
+  scale_color_manual("Scenario", values = cols)+
+  facet_wrap(~ elev_fct, scales = "free_y")+
+  theme_bw(14)+
+  theme(panel.grid.minor = element_blank())+
+  xlab(NULL)+
+  ylab("Snow cover duration in Italy [days]")
+
+ggsave("fig/country/tn-clima-italy2.png", 
+       gg, width = 7, height = 4)
+
+
+
+# fig 3 -------------------------------------------------------------------
+
+library(stars)
+library(scico)
+
+rr_scd_1km <- read_stars("data/modis_scd_1km_webmerc.tif")
+
+gg <-
+ggplot()+
+  geom_stars(data = rr_scd_1km, downsample = 0)+
+  coord_sf()+
+  scale_fill_scico("SCD", palette = "davos", na.value = "white")+
+  theme_void()+
+  theme(plot.background = element_rect(fill = "white", linetype = "blank"))+
+  xlim(515000, 1900000)
+
+ggsave("fig/scd-map-eo.png",
+       gg, width = 6, height = 4)
