@@ -1140,17 +1140,18 @@ stns_to_fill = NULL
 rows_to_fill = NULL
 min_corr = 0.7
 elev_threshold = NULL 
-max_dist_horiz_km = 200
-max_dist_vert_m = 500
+max_dist_horiz_km = 500
+max_dist_vert_m = 1000
 # frac_ref_window = 0.8, 
-min_years_common = 10
+min_years_common = 15
+min_nonzero = 10
 n_ref_max = 5 
 n_ref_min = 1
 digits_round = 0
 ratio_var = T
 sort_by = "corr"
 weight_by = c("dist_v", "dist_h")
-weight_by_extra = list(tau_h = 50, tau_v = 250, tau_corr = 0.3)
+weight_by_extra = list(tau_h = 200, tau_v = 500, tau_corr = 0.3)
 # min_days_around_gap = 150, 
 # window_hw_years = 10,
 # window_hw_days_min = 15, 
@@ -1158,6 +1159,44 @@ weight_by_extra = list(tau_h = 50, tau_v = 250, tau_corr = 0.3)
 verbose = 1 # other
 # wetdays = F,
 save_ref_parameter = NULL
+
+
+
+
+
+
+zz <- readRDS("~/projects/ALPINE_WIDE_SNOW/10_SNOWFALL/01_spatcons/reconstruction-01-all.rds")
+zz %>% ggplot(aes(HN_original, HN_filled))+geom_point()+facet_wrap(~Name, scales = "free")+geom_abline()
+
+
+
+
+dat_error <- dat_spatcons[month %in% c(1:5, 10:12) & !is.na(HN_filled) & !is.na(HN_original),
+                          .(error_sd = sd(HN_filled - HN_original)),
+                          month]
+
+dat_check <- dat_spatcons %>% 
+  merge(dat_error)
+
+dat_check[abs(HN_original - HN_filled) > 2*error_sd]
+dat_check[abs(HN_original - HN_filled) > 3*error_sd, .N, Name]
+dat_check[abs(HN_original - HN_filled) > 3*error_sd, .N, Name] %>% summary
+dat_check[abs(HN_original - HN_filled) > 3*error_sd, .N, Name] %>% with(hist(N, 50))
+dat_check[abs(HN_original - HN_filled) > 3*error_sd, .N, .(Name, month)] %>% summary
+dat_check[abs(HN_original - HN_filled) > 3*error_sd, .N, .(Name, month)] %>% with(hist(N, 50))
+dat_check[abs(HN_original - HN_filled) > 3*error_sd, .N, .(Name, month)] %>% .[N > 1] %>% summary
+dat_check[abs(HN_original - HN_filled) > 3*error_sd, .N, Name] %>% .[N > 5]
+
+dat_check[abs((HN_filled - HN_original)/HN_original) > 0.1]
+dat_check[abs((HN_filled - HN_original)/HN_original) > 0.1, .N, Name]
+
+dat_check[abs(HN_original - HN_filled) > 3*error_sd &
+            abs((HN_filled - HN_original)/HN_original) > 0.1]
+dat_check[abs(HN_original - HN_filled) > 3*error_sd &
+            abs((HN_filled - HN_original)/HN_original) > 0.1,
+          .N, Name]
+
+
 
 # EOF ---------------------------------------------------------------------
 
