@@ -19,9 +19,9 @@ pval_sym <- function(pval){
          symbols = c("***","**","*","."," "))
 }
 
-dat_meta_clust <- readRDS("~/alps-snow/ALPINE_WIDE_SNOW/PAPER/02_review/rds/meta-with-cluster-01.rds")
+dat_meta_clust <- readRDS("~/projects/ALPINE_WIDE_SNOW/PAPER/02_review/rds/meta-with-cluster-01.rds")
 
-load("~/alps-snow/ALPINE_WIDE_SNOW/PAPER/02_review/rds/trends-01-1971-2019-ols-gls.rda")
+load("~/projects/ALPINE_WIDE_SNOW/PAPER/02_review/rds/trends-01-1971-2019-ols-gls.rda")
 
 
 
@@ -58,8 +58,8 @@ gg1 <- dat_plot_djf %>%
   theme_bw(14)+
   theme(panel.grid.minor = element_blank(),
         legend.position = "none")+ # 
-  xlab("[cm pro Dekade]")+
-  ylab("Höhe [m]")+
+  xlab("[cm per decade]")+
+  ylab("Elevation [m]")+
   ylim(0,3000)
 
 
@@ -79,8 +79,8 @@ dat_plot_djf %>%
   theme_bw(14)+
   theme(panel.grid.minor = element_blank(),
         legend.position = "none")+ # 
-  xlab("[cm pro Dekade]")+
-  ylab("Höhe [m]")+
+  xlab("[cm per decade]")+
+  ylab("Elevation [m]")+
   ylim(0,3000)
 
 gg2 <- dat_plot_djf %>% 
@@ -94,24 +94,24 @@ gg2 <- dat_plot_djf %>%
   theme_bw(14)+
   theme(panel.grid.minor = element_blank(),
         legend.position = "none")+ # 
-  xlab("[% pro Dekade]")+
-  ylab("Höhe [m]")+
+  xlab("[% per decade]")+
+  ylab("Elevation [m]")+
   ylim(0,3000)
 
 
 (gg1 + gg2)+
-  plot_annotation(title = "Trend mittlere Schneehöhe Winter (Dez-Feb)",
+  plot_annotation(title = "Trend average winter snow depth (Dec-Feb)",
                   theme = theme(plot.title = element_text(size = 16, face = "bold")))
 
-ggsave("fig/trends-djf.png",
+ggsave("fig/trends-djf_EN.png",
        width = 7, height = 4)
 
-(gg1n + gg2)+
-  plot_annotation(title = "Trend mittlere Schneehöhe Winter (Dez-Feb)",
-                  theme = theme(plot.title = element_text(size = 16, face = "bold")))
-
-ggsave("fig/trends-djf-numbers.png",
-       width = 7, height = 4)
+# (gg1n + gg2)+
+#   plot_annotation(title = "Trend mittlere Schneehöhe Winter (Dez-Feb)",
+#                   theme = theme(plot.title = element_text(size = 16, face = "bold")))
+# 
+# ggsave("fig/trends-djf-numbers.png",
+#        width = 7, height = 4)
 
 
 
@@ -142,8 +142,8 @@ gg1 <- dat_plot_mam %>%
   theme_bw(14)+
   theme(panel.grid.minor = element_blank(),
         legend.position = "none")+ # 
-  xlab("[cm pro Dekade]")+
-  ylab("Höhe [m]")+
+  xlab("[cm per decade]")+
+  ylab("Elevation [m]")+
   ylim(0,3000)
 
 
@@ -163,8 +163,8 @@ gg1n <-
   theme_bw(14)+
   theme(panel.grid.minor = element_blank(),
         legend.position = "none")+ # 
-  xlab("[cm pro Dekade]")+
-  ylab("Höhe [m]")+
+  xlab("[cm per decade]")+
+  ylab("Elevation [m]")+
   ylim(0,3000)
 
 gg2 <- dat_plot_mam[10*trend.rel < 0.25] %>% 
@@ -178,21 +178,21 @@ gg2 <- dat_plot_mam[10*trend.rel < 0.25] %>%
   theme_bw(14)+
   theme(panel.grid.minor = element_blank(),
         legend.position = "none")+ # 
-  xlab("[% pro Dekade]")+
-  ylab("Höhe [m]")+
+  xlab("[% per decade]")+
+  ylab("Elevation [m]")+
   ylim(0,3000)
 
 
 (gg1 + gg2)+
-  plot_annotation(title = "Trend mittlere Schneehöhe Frühling (Mär-Mai)",
+  plot_annotation(title = "Trend average spring snow depth (Mar-May)",
                   theme = theme(plot.title = element_text(size = 16, face = "bold")))
 
-ggsave("fig/trends-mam.png",
+ggsave("fig/trends-mam_EN.png",
        width = 7, height = 4)
 
-(gg1n + gg2)+
-  plot_annotation(title = "Trend mittlere Schneehöhe Frühling (Mär-Mai)",
-                  theme = theme(plot.title = element_text(size = 16, face = "bold")))
-
-ggsave("fig/trends-mam-numbers.png",
-       width = 7, height = 4)
+# (gg1n + gg2)+
+#   plot_annotation(title = "Trend mittlere Schneehöhe Frühling (Mär-Mai)",
+#                   theme = theme(plot.title = element_text(size = 16, face = "bold")))
+# 
+# ggsave("fig/trends-mam-numbers.png",
+#        width = 7, height = 4)
